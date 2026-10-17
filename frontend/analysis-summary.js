@@ -23,20 +23,20 @@ export function summarizeAnalysis(result,{synthetic=false,pageCount=0}={}){
   return {ok:false,error:'The analysis result is missing or malformed. Nothing is shown as a finding; use manual source review.'};
  const fields=result.formFields.map(f=>{
   const problems=[];
-  const valid=Boolean(FIELD_LABELS[f?.status]);
+  const valid=Object.hasOwn(FIELD_LABELS,f?.status);
   if(!valid)problems.push('unrecognised field status');
   if(valid&&NO_VALUE.includes(f.status)&&f.value!=null)problems.push('value present on a '+f.status+' field; shown as unknown');
   const evidence=Array.isArray(f?.evidence)?f.evidence:[];
   evidence.forEach(e=>problems.push(...citationProblems(e,pageCount)));
   const shownValue=!valid||NO_VALUE.includes(f.status)?null:(f.value??null);
   return {id:String(f?.id??''),status:f?.status,label:valid?FIELD_LABELS[f.status]:'Unrecognised',value:shownValue,evidence,
-   alternatives:Array.isArray(f?.alternatives)?f.alternatives:[],unresolved:!valid||f.status!=='extracted',problems};
+   alternatives:valid&&!NO_VALUE.includes(f.status)&&Array.isArray(f?.alternatives)?f.alternatives:[],unresolved:!valid||f.status!=='extracted'||problems.length>0,problems};
  });
  const known=new Set(fields.map(f=>f.id));
  const findings=result.findings.map(f=>{
   const problems=[];
   const evidence=Array.isArray(f?.evidence)?f.evidence:[];
-  const valid=Boolean(FINDING_LABELS[f?.status]);
+  const valid=Object.hasOwn(FINDING_LABELS,f?.status);
   if(!valid)problems.push('unrecognised finding status');
   // A supporting or failing finding with no evidence is not trustworthy: downgrade the display, keep the original.
   const unsupported=['meets','unmet'].includes(f?.status)&&evidence.length===0;
@@ -44,7 +44,7 @@ export function summarizeAnalysis(result,{synthetic=false,pageCount=0}={}){
   if(f?.status==='conflict'&&evidence.length<2)problems.push('conflict cites fewer than two sources');
   (Array.isArray(f?.fieldIds)?f.fieldIds:[]).forEach(id=>{if(!known.has(id))problems.push('references unknown field '+id);});
   evidence.forEach(e=>problems.push(...citationProblems(e,pageCount)));
-  const shown=unsupported||!valid?'unknown':f.status;
+  const shown=unsupported||!valid||problems.length>0?'unknown':f.status;
   return {id:String(f?.id??''),ruleId:String(f?.ruleId??''),originalStatus:f?.status,status:shown,label:FINDING_LABELS[shown],
    evidence,rationale:typeof f?.rationale==='string'?f.rationale:'',fieldIds:Array.isArray(f?.fieldIds)?f.fieldIds:[],problems,
    needsAttention:shown!=='not_applicable'&&(shown!=='meets'||problems.length>0)};
@@ -55,12 +55,12 @@ export function summarizeAnalysis(result,{synthetic=false,pageCount=0}={}){
  return {ok:true,synthetic:Boolean(synthetic),fields,findings,
   coverage:{applicable:Number.isInteger(cov.applicable)?cov.applicable:null,evaluated:Number.isInteger(cov.evaluated)?cov.evaluated:null,unresolvedRules,
    // Informational only: never "complete" while anything is unresolved, whatever the source claims.
-   complete:cov.complete===true&&unresolvedRules.length===0&&!findings.some(f=>f.needsAttention)&&!fields.some(f=>f.unresolved)},
+   complete:Number.isInteger(cov.applicable)&&cov.applicable>0&&cov.evaluated===cov.applicable&&cov.complete===true&&unresolvedRules.length===0&&!findings.some(f=>f.needsAttention)&&!fields.some(f=>f.unresolved)},
   authorization:['unknown','requested','approved','denied'].includes(auth)?auth:'unknown',
   counts:{unresolvedFields:fields.filter(f=>f.unresolved).length,needsAttention:findings.filter(f=>f.needsAttention).length}};
 }
 
-const cite=e=>e&&Number.isInteger(e.page)?`<li>Original page ${esc(e.page)}: ${e.quote?`“${esc(e.quote)}”`:'<em>no readable quote (redacted or unreadable)</em>'}</li>`:'';
+const cite=e=>e&&Number.isInteger(e.page)?`<li>Original page ${esc(e.page)}: ${e.quote&&!['redacted','unreadable'].includes(e.sourceQuality)?`“${esc(e.quote)}”`:'<em>no readable quote (redacted or unreadable)</em>'}</li>`:'';
 
 export function renderAnalysisSummary(model){
  if(!model.ok)return `<section class="panel" aria-labelledby="as-h"><h2 id="as-h">Evidence and gaps</h2><p role="alert">${esc(model.error)}</p></section>`;

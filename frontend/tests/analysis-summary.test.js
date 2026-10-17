@@ -55,3 +55,11 @@ test('render labels synthetic data, escapes content and offers no actions',()=>{
 test('labels match the fixture statusMapping',()=>{
  assert.deepEqual(FINDING_LABELS,fx._meta.statusMapping.findings);assert.deepEqual(FIELD_LABELS,fx._meta.statusMapping.fields);
 });
+
+test('redacted alternatives are suppressed and invalid supporting citations become unknown',()=>{
+ const r=structuredClone(fx.result);r.formFields[1].alternatives=[{value:'DO-NOT-DISPLAY'}];
+ r.findings[0].status='meets';r.findings[0].evidence[0].page=99;
+ const m=summarizeAnalysis(r,opts);
+ assert.equal(m.findings.find(f=>f.id===r.findings[0].id).status,'unknown');
+ assert.ok(!renderAnalysisSummary(m).includes('DO-NOT-DISPLAY'));
+});
