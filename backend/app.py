@@ -139,8 +139,8 @@ class PacketService:
                 # Failed analysis leaves formFields/findings empty and manual review fully available.
                 record['analysis'] = state
                 return
-            # Outcomes are blocked while analysis is queued/checking, so no confirmed outcome can exist
-            # here and nothing needs invalidating; the version is intentionally not bumped.
+            # New analysis changes the snapshot a reviewer must attest to. In-flight-state
+            # guards alone cannot reject a request prepared before analysis completed.
             meta = {  # built before any mutation so a failure here cannot leave half-applied results
                 'status': 'needs_review', 'contractVersion': result['schemaVersion'],
                 'contractStatus': CONTRACT_STATUS, 'adapter': adapter.name, 'synthetic': adapter.synthetic,
@@ -149,6 +149,8 @@ class PacketService:
             record.update(formFields=result['formFields'], findings=result['findings'],
                           criteriaCoverage=result['criteriaCoverage'], authorization=result['authorization'],
                           analysis=meta)
+            record['version'] += 1
+            record['outcome'] = None
 
     def get(self, packet_id):
         # User input never becomes a filesystem path.

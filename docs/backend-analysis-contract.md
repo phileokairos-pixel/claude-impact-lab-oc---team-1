@@ -2,13 +2,11 @@
 
 Audience: the frontend owner and Harjeev (BE-03). Status: **localhost prototype**. The analysis shapes below are a **DRAFT, not an agreed BE-03 contract** (`contractStatus: "unagreed-draft"`). Every JSON example in this file was produced by running this code with a **synthetic fake adapter**; none of it is real extraction, and no model was called.
 
-## Read first: compatibility with the merged frontend (FE-03 action required)
+## Frontend compatibility
 
-`frontend/backend-client.js` on `codex/frontend-live` (integration lane: @phileokairos-pixel with Codex, per `docs/frontend-lanes.md`) contains a deliberate **fail-closed guard** in `validateTextRecord`: it throws ("This response needs the new extraction adapter") unless `analysis.status === 'not_connected'` and `formFields`/`findings` are empty. This branch does not touch that file.
+The source-page workspace accepts all documented analysis states. Staff can review pages and save notes while analysis runs; confirmation waits until analysis is terminal. Unavailable or failed analysis displays its reason and retains manual clarification/escalation. The client polls pending analysis and preserves local notes and rationale when results arrive, while clearing the old attestation and draft.
 
-- **No adapter configured (the default): nothing changes.** The record reports `not_connected`, passes the guard, and the existing UI, tests and browser flow behave exactly as before.
-- **Any adapter configured: the shipped UI will refuse the record**, including when analysis is `unavailable` or `failed` and the API would still allow manual review. Until FE-03 lands, **keep `IHH_ANALYSIS_ADAPTER` unset when using the browser UI.** API clients and the backend tests are unaffected.
-- **Needed from the integration lane (after the BE-03 contract is agreed):** accept `analysis.status` in `unavailable | waiting_for_text | queued | checking | needs_review | failed` as well as `not_connected`; for `unavailable`/`failed`, keep rendering the page review and show `analysis.error`; render populated fields/findings only for `needs_review`, labeled unreviewed (and as a fixture when `synthetic` is true); poll `job.analysis.status` until terminal after `text_ready`. I deliberately did not edit the client or invent a competing UI contract.
+Populated fields/findings remain **unreviewed and are not rendered as verified fields**: the clinical field adapter still needs an agreed BE-03 contract. The workspace explicitly identifies this limitation and synthetic adapter output. No synthetic clinical data replaces a real packet.
 
 ## Basics
 
@@ -93,7 +91,7 @@ Not configured (default) and misconfigured:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "analysis": {"status": "needs_review", "contractStatus": "unagreed-draft", "synthetic": true},
   "formFields": [{
     "id": "f_a", "value": "synthetic value", "status": "extracted", "alternatives": [],
@@ -118,11 +116,11 @@ Not configured (default) and misconfigured:
 - `status` vocabularies are distinct: fields `extracted|missing|redacted|conflicting|unreadable`; findings `meets|unmet|unknown|conflict|not_applicable|clinical_review`. `missing`, `redacted`, `conflicting` and `unreadable` are different states. A `redacted` field's `value` is always `null`.
 - Authorization (`unknown|requested|approved|denied`) is separate from clinical eligibility and from findings.
 - `approve`/`deny` outcomes stay rejected server-side (409) regardless of coverage. `criteriaCoverage.complete` is informational only.
-- `POST /outcome` returns 409 while `analysis.status` is `queued` or `checking`. Landing analysis does **not** bump `version`, so a reviewer typing a note is not given a spurious conflict. Notes and outcomes keep their existing stale-version (409) protection.
+- `POST /outcome` returns 409 while `analysis.status` is `queued` or `checking`. Successful analysis atomically increments `version` and clears any outcome. A confirmation prepared against the previous version is rejected; local edits must be compared against the current version. Notes and outcomes keep their existing stale-version (409) protection.
 
 ## What the server enforces on adapter output (and rejects, never repairs)
 
-Unknown rule IDs; evidence pages outside the PDF; quotes that are not in that page's text (case/whitespace-insensitive); evidence with a quote on a failed/empty page; `extracted` without value and evidence; a value on a `missing`/`redacted`/`unreadable` field; `conflicting` without alternatives; `meets`/`unmet` without evidence; `conflict` with fewer than two sources; `meets`/`unmet` on question (`ask`) or note rules; unknown field references; impossible coverage counts; authorization other than `unknown` without evidence; any top-level or nested key outside the draft shape; and any `decision`/`suggestion`/`recommendation`-style key. The server forces every `reviewed` flag to `false`. Error messages contain the reason and an index path only.
+Unknown rule IDs; evidence pages outside the PDF; quotes that are not in that page's text (case/whitespace-insensitive); evidence with a quote on a failed/empty page; `extracted` without value and evidence; a value on a `missing`/`redacted`/`unreadable` field; `conflicting` without alternatives; `meets`/`unmet` without evidence; `conflict` with fewer than two sources; `meets`/`unmet` on question (`ask`) or note rules; unknown field references; impossible coverage counts; authorization other than `unknown` without evidence; any top-level or nested key outside the draft shape; and any `decision`/`suggestion`/`recommendation`-style key. Extracted values, meets/unmet findings, and non-unknown authorization require at least one readable citation with a verified quote or a positive-area region contained within the page. An unreadable or empty citation cannot support those assertions. This verifies traceability, not whether the evidence semantically proves the assertion; human review remains necessary. The server forces every `reviewed` flag to `false`. Error messages contain the reason and an index path only.
 
 ## Unresolved for BE-03 (Harjeev) — please settle before the frontend binds to this
 
