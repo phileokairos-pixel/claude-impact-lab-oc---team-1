@@ -1,7 +1,7 @@
 import {openPdfPreview} from './pdf-preview.js';
 import {startTour,renderClientProgress} from './onboarding.js';
 import {renderInbox,renderWorkflow,renderReferrer,updateFlowClocks,referralFlow} from './referral-flow.js';
-import {askQuestion,changeRecord,confirmHandoff,invalidateHandoff} from './referral-flow-model.js';
+import {createReferralFlow,askQuestion,changeRecord,confirmHandoff,invalidateHandoff} from './referral-flow-model.js';
 import {createFieldReview} from './field-review-model.js';
 import {renderFieldReview} from './field-review.js';
 import {detectBackend,openBackendReview} from './backend-client.js';
@@ -110,3 +110,54 @@ function renderExternalWorkspace(){
  }else{renderReferrer(main);}
 }
 setInterval(()=>updateFlowClocks(main),15000);
+
+// Presenter-led walkthrough. A separate synthetic review preserves the open packet.
+const presentationButton=document.createElement('button');
+presentationButton.id='start-presentation';presentationButton.className='button primary';presentationButton.textContent='Present Careward';
+roleBar.append(presentationButton);
+presentationButton.onclick=startPresentation;
+function startPresentation(){
+ if(document.querySelector('#presentation-notes'))return;
+ if(stopBackendView?.canLeave&&!stopBackendView.canLeave())return;
+ const saved={...state},savedRole=workspaceRole,savedWorkflow=workflowId,returnFocus=document.activeElement;
+ const savedFlow={...referralFlow};Object.assign(referralFlow,createReferralFlow());
+ askQuestion(referralFlow.records[0],'mobility');askQuestion(referralFlow.records[0],'medication');
+ const savedScroll=window.scrollY;
+ const segments=[
+  {speaker:'Neetal',time:'0:00–0:20',title:'A safe place to recover',view:'problem',target:'.presentation-story',notes:'A patient is ready to leave the hospital, but they need somewhere safe to heal. Before IHH can coordinate that next step, a referral coordinator must find the relevant notes, check conflicting information and chase unanswered questions. Careward makes that review easier to follow.',cue:'Introduce the person and the coordinator. Then hand over to Aaron.',truth:'The problem motivates the prototype. Review-time savings have not been measured.'},
+  {speaker:'Aaron',time:'0:20–0:40',title:'Start with the referral inbox',view:'inbox',target:'#inbox-content',notes:'This is the coordinator’s starting point: which referrals need attention, what is still unanswered, and what happens next. Instead of treating a packet as an isolated file, our vision is to keep the referral and its next steps together.',cue:'Point to DEMO-001 and its open questions. Next opens its example evidence.',truth:'This inbox contains invented, session-based referrals. The practice timer is not a service promise.'},
+  {speaker:'Aaron',time:'0:40–1:05',title:'Show the evidence, keep the human',view:'review',target:'.review-grid',notes:'Our rule is simple: AI can assist with finding information, but the coordinator checks it. Here, mobility information conflicts across the example pages. Staff can inspect the source, correct a finding or preserve the uncertainty. Missing and redacted information stay unknown.',cue:'Point to the mobility conflict and source page. These are authored examples, not results from an uploaded packet.',truth:'Synthetic evidence demonstration. Public PDF upload previews files; it does not run OCR or AI extraction.'},
+  {speaker:'Vibhu',time:'1:05–1:20',title:'Close the coordination loop',view:'workflow',target:'.intake-coordination',notes:'A review should lead to a clear action. Here, staff can ask the referring hospital for the missing information and track the work still needed. A response needs a fresh human review; receiving a reply is not the same as resolving eligibility.',cue:'Point to Questions for the referrer and the staff checklist. Nothing is sent automatically.',truth:'Questions and replies are simulated. Backend follow-up modules exist; the persistent end-to-end connection remains unfinished.'},
+  {speaker:'Vibhu',time:'1:20–1:35',title:'Carry the next step into onboarding',view:'workflow',target:'.onboarding-panel',notes:'The handoff needs an owner and a next action. This onboarding section demonstrates how staff can continue coordinating care without losing the open questions. It is a next-step checklist, not an admission approval.',cue:'Point to responsible team, next action and planning date. Hand over to Harjeev.',truth:'Only limited synthetic checklist metadata is retained in this browser. This is not a shared client record.'},
+  {speaker:'Harjeev',time:'1:35–1:50',title:'Measure the impact before claiming it',view:'impact',target:'.presentation-story',notes:'Our proposed first pilot is one coordinator using Careward alongside today’s process. We would compare review time, missed critical information and rework, then improve the workflow with staff. Faster only helps if the review remains trustworthy.',cue:'Explain a gradual rollout: observe, assist, validate, then expand.',truth:'Pilot proposal, not a deployment commitment. No measured time savings or production readiness is claimed.'},
+  {speaker:'Harjeev',time:'1:50–2:00',title:'The finished vision',view:'vision',target:'.presentation-story',notes:'The finished vision is one referral, clear evidence, a human-confirmed next step and continuity into onboarding. Less time searching through paperwork. More clarity about what is needed to help someone reach a safe recovery.',cue:'Close here. The roadmap separates working pieces from the integration still ahead.',truth:'Future vision. Hosted processing, persistent workflow integration, approved identity and clinical validation are still required.'}
+ ];
+ Object.assign(state,{screen:'inbox',demo:true,file:null,url:null,backendId:null,findings:createFindings(),outcome:null,outcomeDraft:{},events:[],fields:null,fieldReview:null,page:1,selected:'MOB-4',filter:'all',zoom:100,rotation:0});
+ workspaceRole='ihh';workflowId='DEMO-001';
+ const panel=document.createElement('aside');panel.id='presentation-notes';panel.setAttribute('aria-label','Presentation speaker notes');document.body.append(panel);
+ document.body.classList.add('presenting');
+ const locks=[roleBar,document.querySelector('.sidebar'),main];const inertBefore=locks.map(el=>el.inert);locks.forEach(el=>el.inert=true);
+ let index=0,highlight=null,frame=0;
+ const clearHighlight=()=>{highlight?.classList.remove('presentation-highlight');highlight=null;};
+ const close=()=>{cancelAnimationFrame(frame);clearHighlight();panel.remove();document.body.classList.remove('presenting');locks.forEach((el,i)=>el.inert=inertBefore[i]);document.removeEventListener('keydown',keys);Object.assign(state,saved);Object.assign(referralFlow,savedFlow);workspaceRole=savedRole;workflowId=savedWorkflow;render();returnFocus?.focus({preventScroll:true});window.scrollTo({top:savedScroll,behavior:'instant'});};
+ const draw=()=>{
+  cancelAnimationFrame(frame);clearHighlight();const step=segments[index];
+  if(['problem','impact','vision'].includes(step.view)){
+   // Stop any mounted page resources before rendering the presentation-only scene.
+   state.screen='inbox';render();
+   const scenes={
+    problem:'<p class="eyebrow">CAREWARD · THE PROBLEM</p><h1>A safe place to recover.<br>A clearer path to get there.</h1><p class="presentation-lead">Behind every packet is a person waiting for the next step.</p><div class="presentation-roadmap"><article><h2>Find</h2><p>Locate the relevant information across referral documents.</p></article><article><h2>Check</h2><p>Keep conflicts, missing evidence and uncertainty visible.</p></article><article><h2>Coordinate</h2><p>Make the next question and responsible team clear.</p></article></div>',
+    impact:'<p class="eyebrow">HARJEEV · PROPOSED PILOT</p><h1>Earn staff confidence, one step at a time.</h1><div class="presentation-roadmap"><article><h2>1. Observe</h2><p>Establish review-time and critical-information baselines with staff.</p></article><article><h2>2. Assist</h2><p>One coordinator uses evidence review alongside today’s process.</p></article><article><h2>3. Validate</h2><p>Measure time, missed information and rework before expanding.</p></article></div><p class="notice">Expected benefits are hypotheses. Clinical accuracy and time savings have not yet been validated.</p>',
+    vision:'<p class="eyebrow">CAREWARD · FINISHED VISION</p><h1>One referral.<br>A clear next step.</h1><p class="presentation-lead">Packet → source evidence → human review → follow-up → onboarding</p><div class="presentation-roadmap"><article><h2>Working today</h2><p>Browser PDF preview, synthetic evidence review, human confirmation and local draft exports.</p></article><article><h2>Connect next</h2><p>Hosted OCR and configured AI analysis, persistent referrals, follow-up and onboarding in one workflow.</p></article><article><h2>Before real use</h2><p>Approved identity, access and retention policies, validated extraction and a staff-led pilot.</p></article></div><p class="notice">A vision for continuity of care—not a claim that the public demo is production-ready.</p>'
+   };main.innerHTML='<section class="presentation-story">'+scenes[step.view]+'</section>';
+  }else{state.screen=step.view;render();}
+  panel.innerHTML=`<div class="presentation-top"><span class="eyebrow">TEAM PRESENTATION</span><button id="presentation-close" class="button" aria-label="Exit presentation">Exit</button></div><p class="presentation-speaker">${esc(step.speaker)} <span>${step.time}</span></p><p class="eyebrow" role="status">SECTION ${index+1} OF ${segments.length}</p><h2 id="presentation-title" tabindex="-1">${esc(step.title)}</h2><p class="presentation-script">${esc(step.notes)}</p><div class="presentation-cue"><strong>On screen</strong><p>${esc(step.cue)}</p></div><p class="presentation-truth">${esc(step.truth)}</p><div class="presentation-controls"><button id="presentation-back" class="button" ${index===0?'disabled':''}>Back</button><button id="presentation-next" class="button primary">${index===segments.length-1?'Finish presentation':'Next section →'}</button></div><p class="muted">Advance at your pace · ← / → · Esc to exit</p>`;
+  panel.querySelector('#presentation-close').onclick=close;
+  panel.querySelector('#presentation-back').onclick=()=>{if(index>0){index--;draw();}};
+  panel.querySelector('#presentation-next').onclick=()=>{if(index===segments.length-1)close();else{index++;draw();}};
+  panel.querySelector('#presentation-title').focus({preventScroll:true});panel.scrollTop=0;
+  frame=requestAnimationFrame(()=>{highlight=main.querySelector(step.target);highlight?.classList.add('presentation-highlight');highlight?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});});
+ };
+ function keys(e){if(e.key==='Escape'){e.preventDefault();close();return;}if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;if(e.key==='ArrowRight'){e.preventDefault();panel.querySelector('#presentation-next').click();}else if(e.key==='ArrowLeft'&&index>0){e.preventDefault();index--;draw();}}
+ document.addEventListener('keydown',keys);draw();
+}
