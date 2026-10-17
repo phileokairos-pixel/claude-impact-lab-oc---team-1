@@ -2,7 +2,7 @@
 
 Review date: October 17, 2026. Reviewed `referral-review-repo.zip` in remote `main` at commit `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. ZIP was safely extracted outside the checkout; colleague's files were not edited. Assigned collaborators: @harjeev and @VibhuA-ai. Harjeev leads BE-02, BE-03, BE-05, and BE-07; Vibhu leads BE-01, BE-04, and BE-06. Both support BE-03, BE-04, and BE-07. Assignment is recorded in these files and the temporary site board, not GitHub Issues/Projects (creation is blocked).
 
-**Status: proposed / not started.** These are ready-to-copy issue bodies, not published GitHub issues. GitHub API access now works, but the repository has Issues disabled. Creating an issue returns HTTP 410; enabling Issues returns HTTP 403 for this integration. Creating the requested GitHub Project also returns `Resource not accessible by integration (createProjectV2)`. The tickets remain published Markdown, not GitHub Issues or Project items. A temporary frontend team board is provided separately; it is not a GitHub Project.
+**Status: BE-01, BE-02, and BE-04 are in progress with a tested local implementation; other tickets remain open.** These are ready-to-copy issue bodies, not published GitHub issues. GitHub API access now works, but the repository has Issues disabled. Creating an issue returns HTTP 410; enabling Issues returns HTTP 403 for this integration. Creating the requested GitHub Project also returns `Resource not accessible by integration (createProjectV2)`. The tickets remain published Markdown, not GitHub Issues or Project items. A temporary frontend team board is provided separately; it is not a GitHub Project.
 
 ## What exists
 
@@ -44,3 +44,9 @@ Frontend owner can build against the BE-03 response contract immediately. The fr
 - Checked only the evaluation label vocabulary: `approve` and `deny` match the script's suggestion vocabulary. No label-name mismatch is reported.
 - Did not execute live model inference: Anthropic SDK and API key are absent in this machine. No real packet was submitted to a model as part of this review.
 - Did not establish clinical correctness of the colleague's embedded summaries or citations. This is a code/workflow review, not a packet-level medical assessment.
+
+## Lunch-session implementation
+
+The frontend branch now includes `backend/`: validated local PDF upload, background text/OCR processing, original-page preservation, packet search, page notes and guarded unsent clarification/escalation drafts. Eight API tests and six frontend unit tests passed; browser tests exercised the real local flow and existing static demo. Real OCR was tested on a synthetic scan; de-identified R01 completed 34/34 pages without page renumbering. This is pipeline validation, not OCR accuracy or clinical adjudication.
+
+No model-generated clinical fields, full eligibility analysis, durable authenticated records, or public backend hosting are implemented. Read `backend/README.md` before resuming work to avoid duplicating the local API/OCR slice. Follow-up packet diff and the incremental rollout are described in `docs/adoption-and-demo-strategy.md`.

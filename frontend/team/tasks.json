@@ -5,19 +5,20 @@
       "id": "BE-01",
       "title": "Add a runnable local PDF analysis API",
       "priority": "P0",
-      "status": "Todo",
+      "status": "In progress",
       "assignees": [
         "VibhuA-ai"
       ],
       "lane": "API & workflow",
       "dependsOn": [],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-01-api-and-runtime.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-01-api-and-runtime.md",
+      "progressNote": "Local upload/job API implemented. Clinical analysis jobs and durable hosted service remain."
     },
     {
       "id": "BE-02",
       "title": "Implement OCR with stable page citations",
       "priority": "P0",
-      "status": "Todo",
+      "status": "In progress",
       "assignees": [
         "harjeev"
       ],
@@ -25,7 +26,8 @@
       "dependsOn": [
         "BE-01"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-02-ocr-and-pages.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-02-ocr-and-pages.md",
+      "progressNote": "Local rendering, OCR, original-page citations and text search implemented. Orientation/quality checks and structured extraction remain."
     },
     {
       "id": "BE-03",
@@ -46,7 +48,7 @@
       "id": "BE-04",
       "title": "Enforce human review and invalidate stale outcomes",
       "priority": "P0",
-      "status": "Todo",
+      "status": "In progress",
       "assignees": [
         "VibhuA-ai",
         "harjeev"
@@ -55,7 +57,8 @@
       "dependsOn": [
         "BE-03"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-04-human-review.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-04-human-review.md",
+      "progressNote": "Local versioned review and stale-draft invalidation implemented. Full rule-dependent review, authentication and durable audit remain."
     },
     {
       "id": "BE-05",

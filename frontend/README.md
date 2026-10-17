@@ -26,7 +26,7 @@ No npm installation, API keys, external fonts, or build step needed. Node.js is 
 
 ## Mocked / unavailable
 
-All demo text and findings are synthetic fixtures. Uploaded PDFs never inherit those findings. There is no OCR, AI service, full rule evaluation, insurance verification, server persistence, authentication, clinical audit, real sending, completed IHH PDF export, or measured time-saving result. Approval is disabled because three checks cannot establish full eligibility. Form-field edits do not automatically recompute criterion findings; backend integration must add dependency invalidation.
+All demo text and findings are synthetic fixtures. Uploaded PDFs never inherit those findings. On the public static site, there is no OCR, AI service, full rule evaluation, insurance verification, server persistence, authentication, clinical audit, real sending, completed IHH PDF export, or measured time-saving result. The optional localhost backend now provides real text extraction/OCR, page search, review notes, and guarded clarification drafts; see ../backend/README.md. Approval is disabled because three checks cannot establish full eligibility. Form-field edits do not automatically recompute criterion findings; backend integration must add dependency invalidation.
 
 Data stays in browser memory; refresh clears it. Download exports only the local demo review. No localStorage or remote upload. The app does not use event evaluation labels.
 
@@ -54,3 +54,7 @@ npm run deploy
 The deploy command builds an explicit allowlist of static files into ignored `dist/` and pushes a new commit to `gh-pages` without switching or modifying the source index. Only app assets, the public criteria text, the handoff, and the temporary team-board data are published. No referral PDFs, ZIPs, OCR, or colleague case fixtures are included. GitHub can take a short time to rebuild; this is not automatic deployment on every source edit.
 
 `frontend/team/tasks.json` is the shared temporary board data. Edit its status/assignees on `codex/frontend-live`, then use Refresh on the board; the board fetches that GitHub file and labels any fallback snapshot. The requested GitHub Project is not created: the integration can read projects but `createProjectV2` is denied. GitHub Issues is also disabled, and this integration cannot enable it.
+
+## Local document-processing mode
+
+Run the FastAPI service described in [backend/README.md](../backend/README.md), then open its root page locally. After selecting a permitted PDF, choose **Extract text with local backend**. This sends the file to the service on your own computer and enables real page images/text, search, review notes and an unsent next-step draft. It does not generate clinical fields or eligibility decisions. GitHub Pages remains static; it does not expose this localhost backend.

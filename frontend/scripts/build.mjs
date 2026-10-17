@@ -4,7 +4,7 @@ import path from 'node:path';
 const frontend=fileURLToPath(new URL('../',import.meta.url));
 const root=path.resolve(frontend,'..'),out=path.join(frontend,'dist');
 await rm(out,{recursive:true,force:true});await mkdir(path.join(out,'reference'),{recursive:true});
-for(const f of ['index.html','styles.css','model.js'])await copyFile(path.join(frontend,f),path.join(out,f));
+for(const f of ['index.html','styles.css','model.js','backend-client.js'])await copyFile(path.join(frontend,f),path.join(out,f));
 let app=await readFile(path.join(frontend,'app.js'),'utf8');
 app=app.replaceAll('../challenges/1-referral-intake/criteria/admission-criteria.md','./reference/admission-criteria.md').replaceAll('../docs/frontend-research-and-handoff.md','./reference/frontend-research-and-handoff.md');
 await writeFile(path.join(out,'app.js'),app);

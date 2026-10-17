@@ -1,6 +1,6 @@
 # BE-01 · P0 · Add a runnable local PDF analysis API
 
-Owner: @VibhuA-ai. Status: proposed. Blocks: real frontend upload-to-analysis.
+Owner: @VibhuA-ai. Status: in progress. Blocks: real frontend upload-to-analysis.
 
 ## Problem
 The archive has a static page and a CLI evaluator, not a backend the frontend can call. `blind_eval.py` creates the API client and loads criteria at import time, so even scoring depends on inference setup.
@@ -22,3 +22,7 @@ The archive has a static page and a CLI evaluator, not a backend the frontend ca
 
 ## Frontend handoff
 Provide base URL, upload field name, exact response/error JSON, polling interval, and file/page limits. Start same-origin or a narrowly configured local CORS origin. No production deployment is required for this ticket.
+
+## Implementation update
+
+Local upload/job API implemented. Clinical analysis jobs and durable hosted service remain. See `backend/README.md` and the current frontend branch. This is a localhost prototype, not public backend deployment or complete ticket acceptance.

@@ -1,6 +1,6 @@
 # BE-04 · P0 · Enforce human review and invalidate stale outcomes
 
-Owner: @VibhuA-ai (lead), @harjeev (support). Status: proposed. Depends on BE-03; guard tests can start with synthetic fixtures.
+Owner: @VibhuA-ai (lead), @harjeev (support). Status: in progress. Depends on BE-03; guard tests can start with synthetic fixtures.
 
 ## Confirmed bug
 `referral-review.html:233–247` unlocks approval after acknowledgement of flags even when a failed rule remains. The acceptance draft is unconditional. Unchecking a flag leaves an earlier acceptance draft visible. There is no explicit reviewer rationale or versioned decision record.
@@ -22,3 +22,7 @@ Owner: @VibhuA-ai (lead), @harjeev (support). Status: proposed. Depends on BE-03
 
 ## Frontend handoff
 Return review version, allowed next actions with reasons, invalidated finding IDs, and updated draft state. Clinical override policy is not established; default to escalation rather than inventing an override path.
+
+## Implementation update
+
+Local versioned review and stale-draft invalidation implemented. Full rule-dependent review, authentication and durable audit remain. See `backend/README.md` and the current frontend branch. This is a localhost prototype, not public backend deployment or complete ticket acceptance.

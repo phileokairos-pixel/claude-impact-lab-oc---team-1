@@ -1,6 +1,6 @@
 # BE-02 · P0 · Implement OCR with stable page citations
 
-Owner: @harjeev. Status: proposed. Depends on BE-01 for jobs; parser can be built independently.
+Owner: @harjeev. Status: in progress. Depends on BE-01 for jobs; parser can be built independently.
 
 ## Problem
 OCR is currently a README instruction. `blind_eval.py:44` renumbers the remaining pages if any OCR file is missing, so evidence can reference the wrong PDF page. The real sample form also differs from the standalone blank form.
@@ -21,3 +21,7 @@ OCR is currently a README instruction. `blind_eval.py:44` renumbers the remainin
 
 ## Frontend handoff
 Manifest: `documentId`, `page`, `imageUrl`, rotation, quality, and extraction state. Preserve exact page numbers in the analysis output. An initial release can cite whole pages; bounding-box highlighting can follow.
+
+## Implementation update
+
+Local rendering, OCR, original-page citations and text search implemented. Orientation/quality checks and structured extraction remain. See `backend/README.md` and the current frontend branch. This is a localhost prototype, not public backend deployment or complete ticket acceptance.
