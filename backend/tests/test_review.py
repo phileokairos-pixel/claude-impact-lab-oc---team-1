@@ -95,7 +95,7 @@ class ReviewApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.json()
         f = self.field(body, 'covid_result')
-        self.assertEqual((body['version'], f['value'], f['status']), (2, 'negative', 'extracted'))     # original untouched
+        self.assertEqual((body['version'], f['value'], f['status']), (3, 'negative', 'extracted'))     # original untouched
         r = f['review']
         self.assertEqual((r['reviewed'], r['reviewerId'], r['reviewerLabel'], r['correctedValue'], r['effectiveValue']),
                          (True, None, 'QA', None, 'negative'))
@@ -109,7 +109,7 @@ class ReviewApiTests(unittest.TestCase):
                         ({'note': 'Therapy note says positive on page 2.'}, 'no source page'),
                         ({'note': 'Therapy note says positive on page 2.', 'page': 9}, 'page out of range')]:
             self.assertEqual(self.edit('covid_result', value='positive', **kw).status_code, 422, why)
-        self.assertEqual(self.record()['version'], 1)                           # rejected edits change nothing
+        self.assertEqual(self.record()['version'], 2)                           # rejected edits change nothing
         ok = self.edit('covid_result', value='positive', note='Therapy note says positive on page 2.', page=2)
         self.assertEqual(ok.status_code, 200)
         body = ok.json()

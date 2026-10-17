@@ -108,10 +108,10 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
 
 ### PATCH field: valid correction -> 200 (change + the field)
 {
- "version": 2,
+ "version": 3,
  "change": {
   "fieldId": "covid_result",
-  "version": 2,
+  "version": 3,
   "invalidatedFindingIds": [
    "f2"
   ],
@@ -124,7 +124,7 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
   "status": "extracted",
   "evidence": [
    {
-    "documentId": "6a9fb3e423234e93bb7ce9990463398e",
+    "documentId": "d7c4d7323c704f908cd8034b4b973df3",
     "page": 1,
     "quote": "original page 1",
     "region": null,
@@ -142,11 +142,11 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
    "correctedValue": "positive",
    "effectiveValue": "positive",
    "sourcePage": 2,
-   "version": 2,
+   "version": 3,
    "history": [
     {
      "at": "2026-01-01T00:00:00+00:00",
-     "version": 2,
+     "version": 3,
      "reviewerLabel": "QA",
      "sourcePage": 2,
      "before": {
@@ -176,7 +176,7 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
   ],
   "evidence": [
    {
-    "documentId": "6a9fb3e423234e93bb7ce9990463398e",
+    "documentId": "d7c4d7323c704f908cd8034b4b973df3",
     "page": 1,
     "quote": "original page 1",
     "region": null,
@@ -198,14 +198,14 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
 
 ### POST outcome -> 200 (outcome + new version)
 {
- "version": 9,
+ "version": 10,
  "outcome": {
   "decision": "clarification",
   "reviewer": "QA",
   "rationale": "Synthetic request for clarification.",
   "attested": true,
-  "confirmedFromVersion": 8,
-  "confirmedAtVersion": 9,
+  "confirmedFromVersion": 9,
+  "confirmedAtVersion": 10,
   "confirmedAt": "2026-01-01T00:00:00+00:00"
  }
 }
@@ -213,7 +213,7 @@ placeholders. Reviewer names are free-text labels: there is **no authentication*
 ### POST outcome, exact replay -> 200
 {
  "idempotentReplay": true,
- "version": 9
+ "version": 10
 }
 
 ### POST outcome, same version but different content -> 409
@@ -244,8 +244,8 @@ Clinical eligibility and authorization have not been established.
 ### GET export (field detail trimmed here only)
 {
  "mode": "local-review-export",
- "referralId": "6a9fb3e423234e93bb7ce9990463398e",
- "version": 9,
+ "referralId": "d7c4d7323c704f908cd8034b4b973df3",
+ "version": 10,
  "sent": false,
  "analysis": {
   "status": "needs_review",

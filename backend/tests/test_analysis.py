@@ -80,6 +80,28 @@ class ValidatorTests(unittest.TestCase):
         self.assertFalse(out['criteriaCoverage']['complete'])
         self.assertEqual(out['formFields'][1]['value'], None)   # redacted stays null
 
+    def test_assertions_require_readable_traceable_support(self):
+        for target in ('field', 'finding', 'authorization'):
+            for evidence in (ev(3, None, 'unreadable'), ev(1, None), ev(1, quality='uncertain')):
+                with self.subTest(target=target, evidence=evidence):
+                    result = good()
+                    if target == 'field':
+                        result['formFields'][0]['evidence'] = [evidence]
+                    elif target == 'finding':
+                        result['findings'][0].update(status='meets', evidence=[evidence])
+                    else:
+                        result['authorization'] = {'status': 'approved', 'evidence': [evidence]}
+                    self.assertRejected('assertion_without_readable_source', result)
+
+    def test_region_support_must_have_area_inside_page(self):
+        result = good()
+        evidence = result['formFields'][0]['evidence'][0]
+        evidence.update(quote=None, region=[0.1, 0.1, 0.2, 0.2])
+        self.check(result)
+        for region in ([0, 0, 0, 1], [0.9, 0.1, 0.2, 0.2], [0.1, 0.9, 0.2, 0.2]):
+            evidence['region'] = region
+            self.assertRejected('invalid_region', result)
+
     def test_quote_match_ignores_case_and_whitespace_only(self):
         result = good()
         result['formFields'][0]['evidence'][0]['quote'] = 'TRANSFERS   with\nassistance'
@@ -340,7 +362,7 @@ class AnalysisApiTests(unittest.TestCase):
         record = client.get('/api/referrals/' + packet_id).json()
         self.assertEqual([p['page'] for p in record['pages']], [1, 2])
         self.assertTrue(all(p['imageUrl'] for p in record['pages']))
-        self.assertEqual(record['version'], 1)
+        self.assertEqual(record['version'], 2)
         self.assertEqual(record['formFields'][0]['evidence'][0]['page'], 1)
         self.assertFalse(record['findings'][0]['reviewed'])
         self.assertFalse(record['criteriaCoverage']['complete'])
@@ -483,15 +505,15 @@ class AnalysisApiTests(unittest.TestCase):
         self.assertIn('Analysis is still running', blocked.json()['detail'])
         gate.set()
         self.wait(client, packet_id, {'needs_review'})
-        self.assertEqual(client.get(base).json()['version'], 2)    # landing analysis does not spuriously stale a reviewer
-        gated = client.post(base + '/outcome', json=outcome)       # BE-04: analysis fields must be human-reviewed first
+        self.assertEqual(client.get(base).json()['version'], 3)
+        gated = client.post(base + '/outcome', json={**outcome, 'version': 3})   # BE-04: analysis fields must be human-reviewed first
         self.assertEqual((gated.status_code, 'Review every extracted field' in gated.json()['detail']), (409, True))
-        field = {'version': 2, 'value': 'synthetic value', 'assessment': 'verified', 'reviewer': 'QA'}
+        field = {'version': 3, 'value': 'synthetic value', 'assessment': 'verified', 'reviewer': 'QA'}
         self.assertEqual(client.patch(base + '/fields/f_a', json=field).status_code, 200)
-        outcome['version'] = 3
+        outcome['version'] = 4
         self.assertEqual(client.post(base + '/outcome', json=outcome).status_code, 200)
         self.assertEqual(client.get(base + '/draft').status_code, 200)
-        review['version'] = 4
+        review['version'] = 5
         self.assertEqual(client.patch(base + '/review', json=review).status_code, 200)
         self.assertEqual(client.get(base + '/draft').status_code, 409)     # edit invalidates the confirmation
 
@@ -502,7 +524,7 @@ class AnalysisApiTests(unittest.TestCase):
         record = client.get('/api/referrals/' + packet_id).json()
         self.assertTrue(record['criteriaCoverage']['complete'])
         for decision in ('approve', 'deny'):
-            body = {'version': 1, 'decision': decision, 'reviewer': 'QA',
+            body = {'version': record['version'], 'decision': decision, 'reviewer': 'QA',
                     'rationale': 'Synthetic attempt to decide.', 'attested': True}
             self.assertEqual(client.post(f'/api/referrals/{packet_id}/outcome', json=body).status_code, 409)
 

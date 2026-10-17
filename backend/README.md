@@ -54,7 +54,7 @@ Field review, allowed-action reasons and the export are described in `docs/backe
 
 ## Analysis adapter (optional, off by default)
 
-`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. **Frontend caveat:** the merged `frontend/backend-client.js` deliberately fails closed on any analysis status other than `not_connected`, so keep `IHH_ANALYSIS_ADAPTER` unset when using the browser UI until the integration lane (FE-03) adapts it; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
+`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. The browser retains manual source review for all documented analysis states, polls pending analysis, and blocks confirmation until it finishes. Clinical field review remains unconnected to the draft contract. Successful analysis advances the record version, rejecting confirmations based on older data; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
 
 Configuration is environment-only and server-side; copy `.env.example` and see it for every variable. There is deliberately **no default model ID**:
 
@@ -94,3 +94,7 @@ The browser workflow was tested using the public blank referral form: actual PDF
 - BE-04: local next-step guards and stale-draft invalidation work. Complete rule-dependent invalidation, authenticated reviewers, durable audit and idempotency remain.
 
 See `docs/adoption-and-demo-strategy.md` for the staged adoption plan. Keep existing synthetic demo and real-text workflow clearly separated.
+
+## Offline evaluation (BE-05)
+
+`python3 -m backend.evaluation suggest|score`. Separate steps; `score` needs no key or network. See `docs/backend-tickets/BE-05-evaluation.md`. Packet text, runs and suggestions are derived clinical content: keep them under git-ignored paths such as `runtime/`.

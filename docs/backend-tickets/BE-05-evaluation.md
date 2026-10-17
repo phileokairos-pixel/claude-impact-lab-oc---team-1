@@ -53,3 +53,21 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+## Implementation update (branch `be-05-blind-eval`)
+
+`backend/evaluation.py` replaces the archived single-file script with separate steps:
+
+```bash
+python3 -m backend.evaluation suggest --packets packets_text --out runtime/eval --model "$IHH_ANALYSIS_MODEL"
+python3 -m backend.evaluation score --run runtime/eval/runs/<runId>.json --labels <labels file> [--reviews reviews.json] [--criteria DIR]
+```
+
+- `suggest` has no labels parameter and never opens the labels (tested by spying on file access). The model client is built lazily inside `suggest` only; `score` imports no SDK and needs no network or key (tested in a clean subprocess).
+- Cache key = packet hash + criteria hash + prompt version + model ID + schema version. Editing packet text or criteria, or changing model or prompt, forces a new call. `--refresh` forces regeneration. Every attempt, including failures, is written to a run file; `score` takes that explicit run file.
+- Page numbers come from the file names, so a missing page leaves a gap instead of renumbering later pages. A suggestion that cites a page not in the packet is rejected.
+- Outputs are validated before scoring (enums, citation pages, evidence for meets/unmet/conflict, no approve while any rule is unmet/unknown/missing/conflicting). Invalid, truncated or failed output is recorded as a failure, never repaired, never cached.
+- The summary reports expected, attempted, completed, failed, missing, hold and unmatched counts. Zero completed prints "No evaluated results." Holds are not counted as agreement or disagreement. Every disagreement goes to a human review queue with the note that the historical reasons are unknown. The reviewer check of key source claims prints NOT DONE unless a reviews file is supplied.
+- Agreement is not accuracy. Do not cite it as such.
+
+**Not done:** no model was called and no real packet or label file was read, so there are no results. The held-out packet is still needed from the team. The old static page's embedded examples were removed from the tree in BE-07; no accuracy claim should be based on them. The prompt wording (`blind-v2`) is new and untested against a model.

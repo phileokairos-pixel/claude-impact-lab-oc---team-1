@@ -75,6 +75,28 @@ def default_ocr(image: Path) -> str:
     return result.stdout.strip()
 
 
+def appears_blank(pix) -> bool:
+    """Heuristic only: almost every sampled pixel is near-white. A faint scan or light handwriting can
+    still look blank, so this is a flag for a human, never proof that a page has no content."""
+    samples = pix.samples[::97]
+    if not samples:
+        return False
+    dark = sum(1 for b in samples if b < 200)
+    return dark / len(samples) < 0.0005
+
+
+def quality_flags(method: str, text: str, blank: bool) -> list[str]:
+    """Per-page extraction flags. None of them says the text is correct; all text stays unverified."""
+    flags = ['native_text' if method == 'pdf-text' else 'ocr_used']
+    if not text:
+        flags.append('no_text_detected')
+    elif len(text) < 30:
+        flags.append('short_text')
+    if blank:
+        flags.append('appears_blank')
+    return flags
+
+
 class PacketService:
     def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         self.root = data_dir
@@ -142,8 +164,8 @@ class PacketService:
                 # Failed analysis leaves formFields/findings empty and manual review fully available.
                 record['analysis'] = state
                 return
-            # Outcomes are blocked while analysis is queued/checking, so no confirmed outcome can exist
-            # here and nothing needs invalidating; the version is intentionally not bumped.
+            # New analysis changes the snapshot a reviewer must attest to. In-flight-state
+            # guards alone cannot reject a request prepared before analysis completed.
             meta = {  # built before any mutation so a failure here cannot leave half-applied results
                 'status': 'needs_review', 'contractVersion': result['schemaVersion'],
                 'contractStatus': CONTRACT_STATUS, 'adapter': adapter.name, 'synthetic': adapter.synthetic,
@@ -152,6 +174,8 @@ class PacketService:
             record.update(formFields=result['formFields'], findings=result['findings'],
                           criteriaCoverage=result['criteriaCoverage'], authorization=result['authorization'],
                           analysis=meta)
+            record['version'] += 1
+            record['outcome'] = None
 
     def get(self, packet_id):
         # User input never becomes a filesystem path.
@@ -182,8 +206,11 @@ class PacketService:
                         scale = min(2000 / max(page.rect.width, page.rect.height), 3)
                         pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
                         pix.save(image_path)
+                        blank = appears_blank(pix)
                         with self.lock:
                             record['pages'][index]['imageUrl'] = f'/api/referrals/{packet_id}/pages/{index+1}/image'
+                            record['pages'][index]['rotation'] = page.rotation
+                            record['pages'][index]['appearsBlank'] = blank
                         text = page.get_text('text').strip()
                         method = 'pdf-text'
                         if len(text) < 30:
@@ -196,14 +223,17 @@ class PacketService:
                                 state='ready' if text else 'no_text_detected',
                                 text=text[:100000], truncated=len(text)>100000, extractionMethod=method,
                                 quality='unverified' if text else 'no_text_detected',
+                                qualityFlags=quality_flags(method, text, blank),
                             )
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         with self.lock:
-                            record['pages'][index].update(state='failed', error='OCR unavailable or timed out. Review the source image.')
+                            record['pages'][index].update(state='failed', qualityFlags=['extraction_failed'],
+                                                          error='OCR unavailable or timed out. Review the source image.')
                     except Exception:
                         # Never expose subprocess stderr or patient text in errors/logs.
                         with self.lock:
-                            record['pages'][index].update(state='failed', error='This page could not be extracted. Review the original PDF.')
+                            record['pages'][index].update(state='failed', qualityFlags=['extraction_failed'],
+                                                          error='This page could not be extracted. Review the original PDF.')
                     with self.lock:
                         record['job']['completedPages'] = index + 1
                 queue_analysis = False
@@ -244,7 +274,8 @@ class PacketService:
             'job': {'jobId': packet_id, 'state': 'queued', 'currentPage': None,
                     'completedPages': 0, 'totalPages': page_count, 'partial': False},
             'pages': [{'page': n, 'state': 'pending', 'text': '', 'imageUrl': None,
-                       'quality': 'unverified', 'extractionMethod': None} for n in range(1, page_count + 1)],
+                       'quality': 'unverified', 'extractionMethod': None, 'rotation': None, 'appearsBlank': None,
+                       'qualityFlags': []} for n in range(1, page_count + 1)],
             'analysis': self.initial_analysis(),
             'formFields': [], 'findings': [],
             'criteriaCoverage': {'evaluated': 0, 'complete': False},
@@ -471,6 +502,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         return FileResponse(ROOT / 'frontend/index.html')
 
     allowed_assets = {name: ROOT / 'frontend' / name for name in (
+        'assets/source-sans-3-latin.woff2', 'assets/source-sans-3-LICENSE.txt',
         'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'field-review-model.js', 'field-review.js',
         'team/index.html', 'team/board.js', 'team/tasks.json')}
     allowed_assets.update({
