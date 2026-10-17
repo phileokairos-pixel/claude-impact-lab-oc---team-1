@@ -41,3 +41,16 @@ export function summaryText(snapshot){
  lines.push('Authorization: not established. Clinical eligibility: not evaluated.','Limited example fields only; not the complete IHH form.','Nothing has been sent. Local session only; not an authenticated clinical record.');
  return lines.join('\n');
 }
+
+export function clarificationText(snapshot){
+ const questions={
+  mobility:'Please clarify transfer independence; the example referral summary and therapy note disagree.',
+  self_medication:'Please provide documentation of medication self-administration ability.',
+  covid_result:'Please clarify the documented screening result.',
+  covid_date:'Screening timing cannot be assessed because the example date was removed for privacy. Route to an authorized reviewer; do not reconstruct the redacted date.',
+  authorization:'Please confirm whether payer authorization has been approved; a request alone does not establish approval.',
+  authorized_stay:'Please clarify the authorized length of stay, if authorization has been approved.'
+ };
+ const unresolved=snapshot.fields.filter(f=>f.assessment!=='verified');
+ return ['SYNTHETIC DEMO — UNSENT CLARIFICATION DRAFT',`Based on confirmed review revision ${snapshot.revision}`,`Prepared by: ${snapshot.reviewer}`,'',...unresolved.flatMap((f,i)=>[`${i+1}. ${questions[f.id]||`Please clarify ${f.label}.`}`,`Example source page(s): ${f.pages.join(', ')}`,f.note?`Reviewer context: ${f.note}`:'','']),unresolved.length?'The review remains open pending clarification.':'No unresolved items in this limited example.','No admission decision or insurance authorization is established.','Review this draft before use. Nothing has been sent.'].join('\n');
+}
