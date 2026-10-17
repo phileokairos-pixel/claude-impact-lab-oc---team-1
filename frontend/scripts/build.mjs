@@ -13,8 +13,6 @@ await copyFile(path.join(root,'docs/frontend-research-and-handoff.md'),path.join
 await writeFile(path.join(out,'.nojekyll'),'');
 console.log('Built static frontend only in frontend/dist (no PDFs, ZIPs, OCR, or case data).');
 
-await mkdir(path.join(out,'team'),{recursive:true});
-for(const f of ['index.html','board.js','tasks.json'])await copyFile(path.join(frontend,'team',f),path.join(out,'team',f));
 
 await mkdir(path.join(out,'assets'),{recursive:true});
 for(const f of ['source-sans-3-latin.woff2','source-sans-3-LICENSE.txt'])await copyFile(path.join(frontend,'assets',f),path.join(out,'assets',f));

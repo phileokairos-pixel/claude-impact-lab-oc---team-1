@@ -104,3 +104,5 @@ The synthetic inbox, hospital completeness check, clarification thread and mock 
 ## Real local field-review regression
 
 Start `python3 backend/tests/field_browser_server.py` in one terminal, then run `node frontend/tests/backend-fields-browser.cjs`. This serves the real API on loopback port 8001 with an injected synthetic analysis adapter and invented PDF; it never calls a model. The browser test covers all-field review, source navigation, retained edits on concurrent 409/reload, uncertainty gates, confirmed export and reversal validation. Stop the test server afterward. Production model extraction and clinical accuracy are not validated by this test.
+
+The internal team board is excluded from the public build and navigation. Its source remains in the repository for reference; GitHub Issues/Projects is the current team tracker.

@@ -32,7 +32,6 @@ function render(){
  document.querySelector('#nav-intake').classList.toggle('active',state.screen!=='guide');document.querySelector('#nav-guide').classList.toggle('active',state.screen==='guide');
  document.querySelector('#current-role').textContent='Viewing as: '+roleNames[workspaceRole];
  document.querySelector('#nav-intake').innerHTML=workspaceRole==='ihh'?'<span aria-hidden="true">▤</span><span>Referrals</span>':workspaceRole==='hospital'?'<span aria-hidden="true">▤</span><span>Hospital referrals</span>':'<span aria-hidden="true">▤</span><span>My next steps</span>';
- document.querySelector('a[href="./team/"]').style.display=workspaceRole==='ihh'?'':'none';
  document.querySelector('#nav-guide').style.display=workspaceRole==='ihh'?'':'none';
  document.querySelector('#nav-inbox').style.display=workspaceRole==='ihh'?'':'none';
  if(workspaceRole!=='ihh'){document.querySelector('#breadcrumb').textContent=roleNames[workspaceRole];renderExternalWorkspace();return;}
