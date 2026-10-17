@@ -1,6 +1,6 @@
 # Backend tickets — Team 1
 
-Review date: October 17, 2026. Reviewed `referral-review-repo.zip` in remote `main` at commit `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. ZIP was safely extracted outside the checkout; colleague's files were not edited. Owner for all tickets: backend teammate (GitHub username not provided).
+Review date: October 17, 2026. Reviewed `referral-review-repo.zip` in remote `main` at commit `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. ZIP was safely extracted outside the checkout; colleague's files were not edited. Assigned collaborators: @harjeev and @VibhuA-ai. Harjeev leads BE-02, BE-03, BE-05, and BE-07; Vibhu leads BE-01, BE-04, and BE-06. Both support BE-03, BE-04, and BE-07. Assignment is recorded in these files and the temporary site board, not GitHub Issues/Projects (creation is blocked).
 
 **Status: proposed / not started.** These are ready-to-copy issue bodies, not published GitHub issues. GitHub API access now works, but the repository has Issues disabled. Creating an issue returns HTTP 410; enabling Issues returns HTTP 403 for this integration. Creating the requested GitHub Project also returns `Resource not accessible by integration (createProjectV2)`. The tickets remain published Markdown, not GitHub Issues or Project items. A temporary frontend team board is provided separately; it is not a GitHub Project.
 

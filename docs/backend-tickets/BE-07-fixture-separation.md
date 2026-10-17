@@ -1,6 +1,6 @@
 # BE-07 · P0 before further sharing · Separate packet-derived data from source
 
-Owner: backend teammate and team lead. Status: proposed. No dependency.
+Owner: @harjeev (lead), @VibhuA-ai (support). Status: proposed. No dependency.
 
 ## Problem
 The ZIP's README says its HTML contains packet-derived clinical summaries and requests organizer approval before sharing them in a repo. The archive is already committed on remote main. No organizer approval was established during this review. This is separate from checking whether records are de-identified.

@@ -1,6 +1,6 @@
 # BE-04 · P0 · Enforce human review and invalidate stale outcomes
 
-Owner: backend teammate, with frontend coordination. Status: proposed. Depends on BE-03; guard tests can start with synthetic fixtures.
+Owner: @VibhuA-ai (lead), @harjeev (support). Status: proposed. Depends on BE-03; guard tests can start with synthetic fixtures.
 
 ## Confirmed bug
 `referral-review.html:233–247` unlocks approval after acknowledgement of flags even when a failed rule remains. The acceptance draft is unconditional. Unchecking a flag leaves an earlier acceptance draft visible. There is no explicit reviewer rationale or versioned decision record.

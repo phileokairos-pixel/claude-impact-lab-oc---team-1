@@ -1,6 +1,6 @@
 # BE-03 · P0 · Return validated form fields and rule findings
 
-Owner: backend teammate. Status: proposed. Depends on BE-02. Frontend can use a synthetic contract fixture immediately.
+Owner: @harjeev (lead), @VibhuA-ai (support). Status: proposed. Depends on BE-02. Frontend can use a synthetic contract fixture immediately.
 
 ## Problem
 The current model output is JSON-parsed but not schema-validated; its object-based rules and `fails` status do not match the HTML's array-based rules and `fail` status. There is no form-prefill payload, coverage report, or result-loading adapter.

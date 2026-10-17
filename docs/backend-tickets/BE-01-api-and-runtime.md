@@ -1,6 +1,6 @@
 # BE-01 · P0 · Add a runnable local PDF analysis API
 
-Owner: backend teammate. Status: proposed. Blocks: real frontend upload-to-analysis.
+Owner: @VibhuA-ai. Status: proposed. Blocks: real frontend upload-to-analysis.
 
 ## Problem
 The archive has a static page and a CLI evaluator, not a backend the frontend can call. `blind_eval.py` creates the API client and loads criteria at import time, so even scoring depends on inference setup.

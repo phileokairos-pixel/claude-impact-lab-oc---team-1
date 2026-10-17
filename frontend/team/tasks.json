@@ -6,65 +6,79 @@
       "title": "Add a runnable local PDF analysis API",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "VibhuA-ai"
+      ],
       "lane": "API & workflow",
       "dependsOn": [],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-01-api-and-runtime.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-01-api-and-runtime.md"
     },
     {
       "id": "BE-02",
       "title": "Implement OCR with stable page citations",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "harjeev"
+      ],
       "lane": "Document analysis",
       "dependsOn": [
         "BE-01"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-02-ocr-and-pages.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-02-ocr-and-pages.md"
     },
     {
       "id": "BE-03",
       "title": "Return validated form fields and rule findings",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "harjeev",
+        "VibhuA-ai"
+      ],
       "lane": "Document analysis",
       "dependsOn": [
         "BE-02"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-03-analysis-contract.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-03-analysis-contract.md"
     },
     {
       "id": "BE-04",
       "title": "Enforce human review and invalidate stale outcomes",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "VibhuA-ai",
+        "harjeev"
+      ],
       "lane": "API & workflow",
       "dependsOn": [
         "BE-03"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-04-human-review.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-04-human-review.md"
     },
     {
       "id": "BE-05",
       "title": "Make evaluation blind and reproducible",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "harjeev"
+      ],
       "lane": "Document analysis",
       "dependsOn": [
         "BE-03"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-05-evaluation.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-05-evaluation.md"
     },
     {
       "id": "BE-06",
       "title": "Instrument timing and rehearse end to end",
       "priority": "P1",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "VibhuA-ai"
+      ],
       "lane": "API & workflow",
       "dependsOn": [
         "BE-01",
@@ -72,17 +86,20 @@
         "BE-03",
         "BE-04"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-06-measurement.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-06-measurement.md"
     },
     {
       "id": "BE-07",
       "title": "Separate packet-derived data from source",
       "priority": "P0",
       "status": "Todo",
-      "assignees": [],
+      "assignees": [
+        "harjeev",
+        "VibhuA-ai"
+      ],
       "lane": "Team lead",
       "dependsOn": [],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/backend-tickets/docs/backend-tickets/BE-07-fixture-separation.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-07-fixture-separation.md"
     }
   ]
 }

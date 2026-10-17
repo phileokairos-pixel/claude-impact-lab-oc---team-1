@@ -1,6 +1,6 @@
 # BE-06 · P1 after the working slice · Instrument timing and rehearse end to end
 
-Owner: backend teammate plus frontend owner. Status: proposed. Depends on BE-01–04.
+Owner: @VibhuA-ai. Status: proposed. Depends on BE-01–04.
 
 ## Goal
 Measure whether automation reduces real review work without hiding mistakes or waiting. User-reported baseline is approximately 120 minutes; 90/60/30 minutes are targets for 25/50/75% less time, not measured results.

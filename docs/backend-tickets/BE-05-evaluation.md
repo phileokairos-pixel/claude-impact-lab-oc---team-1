@@ -1,6 +1,6 @@
 # BE-05 · P0 before accuracy claims · Make evaluation blind and reproducible
 
-Owner: backend teammate. Status: proposed. Depends on BE-03.
+Owner: @harjeev. Status: proposed. Depends on BE-03.
 
 ## Problem
 The static page embeds actual IHH decisions and admits its suggestions were written after those labels were opened. Its agreement is not blind-test evidence. The separate `suggest` function avoids reading labels, but caching only by filename can silently reuse outputs after inputs or criteria change.
