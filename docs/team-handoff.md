@@ -82,3 +82,7 @@ The reported 120-minute packet review is a starting hypothesis, not a measured s
 The synthetic field-review/export UI is implemented in `frontend/field-review.js` and `frontend/field-review-model.js`. It retains extracted originals, corrections, reviewer/history, unresolved items, original example-page links and a revision-bound text/JSON export. Related synthetic findings are invalidated after field edits. It is a UI-only fixture, not an alternative server contract or real extraction.
 
 Harjeev: provide the validated BE-03 schema/fixture before replacing the synthetic data boundary. Vibhu: connect the server-authoritative review revision, correction history, allowed actions and confirmed export; do not rely on the browser's guards as authorization. Frontend integration will adapt the agreed contract through `backend-client.js`. Do not route uploaded PDFs through the synthetic store. Both new JS modules are allowed by the local static-file handler so existing local startup remains usable.
+
+## Automatic deployment workflow
+
+The `Test and deploy intake frontend` workflow validates frontend pull requests and deploys frontend changes on `codex/frontend-live` once Pages Source is set to GitHub Actions. See `frontend/README.md` for the one-time Pages/environment settings. PRs never deploy; merging only to `main` is not a deployment trigger. Backend hosting remains separate. After Actions publishing is enabled, use the workflow rather than the older branch-based deploy command above.
