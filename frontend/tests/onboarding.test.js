@@ -14,3 +14,8 @@ test('invalid and real record identifiers fail closed; storage errors are surfac
  assert.throws(()=>saveRecord(storage,record),/Quota/);
  assert.throws(()=>loadRecord({getItem:()=>'{broken'},'DEMO-001'));
 });
+test('coordination metadata accepts controlled demo choices and valid calendar dates only',()=>{
+ const storage={setItem:()=>{}};
+ assert.equal(saveRecord(storage,{...record,owner:'intake',nextAction:'conversation',followUpAt:'2026-10-18'}).owner,'intake');
+ for(const extra of [{owner:'actual person'},{nextAction:'private notes'},{followUpAt:'2026-02-30'}])assert.throws(()=>saveRecord(storage,{...record,...extra}),/Invalid/);
+});

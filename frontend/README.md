@@ -122,3 +122,9 @@ Clear saved progress removes that referral's snapshot. Storage failures display 
 error rather than claiming a save. This is not a shared or production client record.
 
 Check with `node frontend/tests/onboarding-browser.cjs` (static build on port 4176).
+
+The handoff now includes controlled demo responsible-team/next-action choices and
+an optional planning date. A reusable presentation boundary supports saving,
+retry and stale-record states for the forthcoming API integration. See
+[onboarding component contract](../docs/onboarding-component.md). No reminders
+are sent and the new controls do not make the record a shared clinical record.
