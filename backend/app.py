@@ -26,6 +26,9 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.review import (
+    FieldReviewInput, apply_field_review, build_export, draft_sections, now_iso, with_actions,
+)
 from backend.analysis import (
     CONTRACT_STATUS, AnalysisError, AnalysisRequest, AnalysisRuntime, AnalysisUnavailable, PageInput,
     execute_analysis,
@@ -369,7 +372,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
 
     @app.get('/api/referrals/{packet_id}')
     def referral(packet_id: str, request: Request):
-        return request.app.state.service.get(packet_id)
+        return with_actions(request.app.state.service.get(packet_id))
 
     @app.get('/api/referrals/{packet_id}/search')
     def search(packet_id: str, request: Request, q: str = Query(min_length=2, max_length=120)):
@@ -405,13 +408,21 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
             record['version'] += 1
             record['outcome'] = None
             service.records[packet_id] = record
-            return record
+            return with_actions(record)
 
     @app.post('/api/referrals/{packet_id}/outcome')
     def outcome(packet_id: str, body: OutcomeInput, request: Request):
         service = request.app.state.service
         with service.lock:
             record = service.get(packet_id)
+            current = record['outcome']
+            # Exact replay of the request that produced the CURRENT confirmation is idempotent. Anything
+            # else at an old version (different content, or any edit since) is stale and rejected.
+            if current and body.version == current.get('confirmedFromVersion') \
+                    and record['version'] == current.get('confirmedAtVersion') \
+                    and (body.decision, body.reviewer, body.rationale, body.attested) == (
+                        current['decision'], current['reviewer'], current['rationale'], current['attested']):
+                return {**with_actions(record), 'idempotentReplay': True}
             if body.version != record['version']:
                 raise HTTPException(409, 'Review changed. Reload before confirming.')
             if body.decision in ('approve', 'deny'):
@@ -420,10 +431,29 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
                 raise HTTPException(409, 'Review a source page and attest before recording the next step.')
             if record['analysis']['status'] in ('queued', 'checking'):
                 raise HTTPException(409, 'Analysis is still running. Wait for it to finish before recording the next step.')
-            record['outcome'] = body.model_dump(exclude={'version'})
+            if any(not f['review'].get('reviewed') for f in record['formFields']):
+                raise HTTPException(409, 'Review every extracted field before recording the next step.')
+            record['outcome'] = {**body.model_dump(exclude={'version'}), 'confirmedFromVersion': body.version,
+                                 'confirmedAtVersion': body.version + 1, 'confirmedAt': now_iso()}
             record['version'] += 1
             service.records[packet_id] = record
-            return record
+            return with_actions(record)
+
+    @app.patch('/api/referrals/{packet_id}/fields/{field_id}')
+    def field_review(packet_id: str, field_id: str, body: FieldReviewInput, request: Request):
+        service = request.app.state.service
+        with service.lock:
+            record = service.get(packet_id)       # private copy: a rejected edit changes nothing
+            change = apply_field_review(record, field_id, body)
+            service.records[packet_id] = record
+            return {**with_actions(record), 'change': change}
+
+    @app.get('/api/referrals/{packet_id}/export')
+    def export(packet_id: str, request: Request):
+        record = request.app.state.service.get(packet_id)
+        if not record['outcome']:
+            raise HTTPException(409, 'No current confirmed next step. Review and confirm first.')
+        return build_export(record)
 
     @app.get('/api/referrals/{packet_id}/draft')
     def draft(packet_id: str, request: Request):
@@ -432,7 +462,9 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
             raise HTTPException(409, 'No current confirmed next step. Review and confirm first.')
         out = record['outcome']
         return {'version': record['version'], 'sent': False,
-                'text': f"UNSENT LOCAL DRAFT\nNext step: {out['decision']}\nReviewer: {out['reviewer']}\n\n{out['rationale']}\n\nClinical eligibility and authorization have not been established."}
+                'text': f"UNSENT LOCAL DRAFT\nNext step: {out['decision']}\nReviewer: {out['reviewer']}\n\n{out['rationale']}"
+                        + ''.join('\n' + line for line in draft_sections(record))
+                        + "\n\nClinical eligibility and authorization have not been established."}
 
     @app.get('/')
     def index():

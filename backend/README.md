@@ -44,9 +44,13 @@ No API keys are needed for the default OCR-only service. This is not a public ba
 | GET `/api/referrals/{id}/pages/{n}/image` | Rendered original page |
 | PATCH `/api/referrals/{id}/review` | `{version, page, reviewer, note}` → revised record; invalidates prior outcome |
 | POST `/api/referrals/{id}/outcome` | `{version, decision, reviewer, rationale, attested}` → guarded next step |
+| PATCH `/api/referrals/{id}/fields/{fieldId}` | BE-04: `{version, value, assessment, reviewer, note, page}` → field review; keeps the original, invalidates dependent findings/outcome |
+| GET `/api/referrals/{id}/export` | BE-04: reviewed snapshot (confirmed vs unresolved); 409 without a current confirmation |
 | GET `/api/referrals/{id}/draft` | Unsent draft only for the current confirmed version |
 
 `text_ready` means text processing finished, **not** clinical analysis completed. `partial: true` indicates a page needs manual attention. An approval/denial attempt is always rejected in this version; no client-side override can enable it.
+
+Field review, allowed-action reasons and the export are described in `docs/backend-review-contract.md` (synthetic examples; reviewer labels only, in-memory history, no auth).
 
 ## Analysis adapter (optional, off by default)
 
