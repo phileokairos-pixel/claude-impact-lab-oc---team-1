@@ -44,3 +44,11 @@ renders/
 backend/uploads/
 backend/data/
 /referral-review*/
+
+# LOOP-06: shared-record store, documents, backups and dev user files stay local
+shared-store/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+dev-users.json
+backups/

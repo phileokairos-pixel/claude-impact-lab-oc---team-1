@@ -38,7 +38,7 @@ class RepoHygiene(unittest.TestCase):
 
     def test_ignore_rules_cover_derived_clinical_content(self):
         probes = ['runtime/x.json', 'results/R01.json', 'suggestions/R01.json', 'packets_text/R01_p-01.txt',
-                  'ocr/p1.txt', 'renders/p1.png', 'server.log', '.env', 'challenges/1-referral-intake/packets/R01.pdf']
+                  'ocr/p1.txt', 'shared-store/shared.sqlite3', 'x/shared.sqlite3-wal', 'dev-users.json', 'backups/b/shared.sqlite3', 'renders/p1.png', 'server.log', '.env', 'challenges/1-referral-intake/packets/R01.pdf']
         for probe in probes:
             r = subprocess.run(['git', 'check-ignore', '-q', probe], cwd=ROOT)
             self.assertEqual(r.returncode, 0, f'{probe} must be git-ignored')
