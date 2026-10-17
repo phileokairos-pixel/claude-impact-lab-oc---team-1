@@ -5,6 +5,18 @@ import {createFindings,sourcePages,labels,decisionProblem,validateFile,findingRe
 const main=document.querySelector('#main');
 let stopBackendView=null;
 let backend=null;
+let workspaceRole='ihh';
+const hospitalDemo={prepared:false,submitted:false};
+const roleNames={ihh:'IHH intake staff',hospital:'Hospital referral staff',client:'Person receiving care'};
+const roleBar=document.createElement('section');
+roleBar.className='notice';roleBar.style.cssText='margin:16px 24px;padding:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center';
+roleBar.setAttribute('aria-label','Demo workspace role');
+roleBar.innerHTML=`<div style="flex:1;min-width:180px"><strong id="current-role">Viewing as: IHH intake staff</strong><p style="margin:4px 0">Demo role preview · no sign-in or access control</p></div><label for="workspace-role">Preview role</label><select id="workspace-role"><option value="ihh">IHH intake staff</option><option value="hospital">Hospital referral staff</option><option value="client">Person receiving care</option></select>`;
+main.before(roleBar);
+roleBar.querySelector('select').onchange=e=>{
+ if(stopBackendView?.canLeave&&!stopBackendView.canLeave()){e.target.value=workspaceRole;return;}
+ workspaceRole=e.target.value;fileRequest++;render();focusHeading();
+};
 const state={screen:'upload',demo:false,file:null,url:null,backendId:null,findings:[],selected:'MOB-4',page:1,filter:'all',outcome:null,outcomeDraft:{},events:[],fields:null,fieldReview:null,zoom:100,rotation:0};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const log=(type,detail={})=>state.events.push({type,at:new Date().toISOString(),...detail});
@@ -16,6 +28,11 @@ function render(){
  if(stopBackendView){stopBackendView();stopBackendView=null;}
  document.querySelector('#breadcrumb').textContent=state.screen==='upload'?'New referral':state.screen==='guide'?'Demo & design notes':state.demo?'DEMO-001':'Local PDF';
  document.querySelector('#nav-intake').classList.toggle('active',state.screen!=='guide');document.querySelector('#nav-guide').classList.toggle('active',state.screen==='guide');
+ document.querySelector('#current-role').textContent='Viewing as: '+roleNames[workspaceRole];
+ document.querySelector('#nav-intake').innerHTML=workspaceRole==='ihh'?'▤ Referral intake':workspaceRole==='hospital'?'▤ Hospital referrals':'▤ My next steps';
+ document.querySelector('a[href="./team/"]').style.display=workspaceRole==='ihh'?'':'none';
+ document.querySelector('#nav-guide').style.display=workspaceRole==='ihh'?'':'none';
+ if(workspaceRole!=='ihh'){document.querySelector('#breadcrumb').textContent=roleNames[workspaceRole];renderExternalWorkspace();return;}
  if(state.screen==='upload')renderUpload();else if(state.screen==='review')renderReview();else if(state.screen==='outcome')renderOutcome();else if(state.screen==='fields')renderFields();else renderGuide();
 }
 function focusHeading(){main.querySelector('h1')?.setAttribute('tabindex','-1');main.querySelector('h1')?.focus();}
@@ -26,7 +43,7 @@ function renderUpload(){main.innerHTML=`${heading('REFERRAL INTAKE','Less search
  main.querySelector('#file-input').onchange=e=>loadFile(e.target.files[0]);const dz=main.querySelector('#dropzone');dz.ondragover=e=>{e.preventDefault();dz.classList.add('dragging');};dz.ondragleave=()=>dz.classList.remove('dragging');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('dragging');if(e.dataTransfer.files.length!==1){main.querySelector('#upload-error').textContent='Choose one PDF at a time.';return;}loadFile(e.dataTransfer.files[0]);};
 }
 let fileRequest=0;
-async function loadFile(file){const request=++fileRequest;const error=validateFile(file);if(error){main.querySelector('#upload-error').textContent=error;return;}const header=new TextDecoder().decode(await file.slice(0,5).arrayBuffer());if(request!==fileRequest||state.screen!=='upload')return;if(header!=='%PDF-'){main.querySelector('#upload-error').textContent='This file does not have a valid PDF header.';return;}if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{file,url:URL.createObjectURL(new Blob([file],{type:'application/pdf'})),backendId:null,demo:false,findings:[],outcome:null,outcomeDraft:{},events:[]});log('local_pdf_opened');go('review');}
+async function loadFile(file){const request=++fileRequest;const error=validateFile(file);if(error){main.querySelector('#upload-error').textContent=error;return;}const header=new TextDecoder().decode(await file.slice(0,5).arrayBuffer());if(request!==fileRequest||state.screen!=='upload'||workspaceRole!=='ihh')return;if(header!=='%PDF-'){main.querySelector('#upload-error').textContent='This file does not have a valid PDF header.';return;}if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{file,url:URL.createObjectURL(new Blob([file],{type:'application/pdf'})),backendId:null,demo:false,findings:[],outcome:null,outcomeDraft:{},events:[]});log('local_pdf_opened');go('review');}
 function renderReview(){
  if(!state.demo){main.innerHTML=`${heading('LOCAL PDF PREVIEW','Your packet is ready to view.','This file has not been analyzed. No findings or eligibility results have been generated.')}${steps(1)}<div class="notice">${backend?'<strong>Local text extraction is available.</strong> Choosing Extract sends this permitted PDF to the service on this computer. Clinical analysis remains unavailable.':'<strong>Backend not connected.</strong> This public/static app only previews PDFs. Run the local backend to extract text, or use the separate synthetic demo.'}</div>${backend?`<button id="extract-local" class="button primary">${state.backendId?'Reopen local text review':'Extract text with local backend'} →</button>`:''}<div class="local-tools"><strong>${esc(state.file.name)}</strong><button id="back" class="button">Choose another packet</button></div><iframe class="pdf-frame" title="Local PDF preview" sandbox src="${state.url}"></iframe><p class="muted"><a href="${state.url}" download="referral-preview.pdf">Download the selected PDF</a> if the isolated preview is unavailable. The file is retained only for this session.</p>`;main.querySelector('#back').onclick=reset;if(backend)main.querySelector('#extract-local').onclick=()=>{stopBackendView=openBackendReview({file:state.file,container:main,referralId:state.backendId,onId:id=>{state.backendId=id;},onBack:()=>go('review')});};return;}
  const count=state.findings.filter(f=>f.reviewed).length;const filtered=state.findings.filter(f=>state.filter==='all'||!f.reviewed);const selected=state.findings.find(f=>f.id===state.selected);
@@ -60,4 +77,17 @@ function renderFields(){
  }});
 }
 
-detectBackend().then(result=>{backend=result;if(state.screen==='review'&&!state.demo&&!stopBackendView)render();});
+detectBackend().then(result=>{backend=result;if(workspaceRole==='ihh'&&state.screen==='review'&&!state.demo&&!stopBackendView)render();});
+
+function renderExternalWorkspace(){
+ const banner='<div class="notice"><strong>Synthetic role preview.</strong> Invented example only. No real referral status, submission, message, or connection to a care team. Switching roles does not authenticate anyone.</div>';
+ if(workspaceRole==='client'){
+  main.innerHTML=`${heading('PERSON RECEIVING CARE','Your next steps, in plain language.','A simple view of what is happening and who can help.')}${banner}<div class="guide-grid"><section class="panel"><span class="badge unknown">Example status · waiting for review</span><h2>Your referral is being reviewed</h2><p>In this example, the hospital has asked IHH to review a referral. A referral is a request for care; it does not mean a place has been confirmed.</p><h3>What you need to do</h3><p>This example has no action assigned to you. Your actual next steps must come from your care team.</p><h3>What happens next</h3><p>The intake team reviews the information. Your care team can explain what information is still needed and discuss the next step with you.</p><p><strong>No placement or arrival time is confirmed in this demo.</strong></p></section><section class="panel"><h2>Questions for your care team</h2><p>You can ask the hospital staff helping with your referral:</p><ul><li>Who can update me about my referral?</li><li>Is there anything you need from me?</li><li>What should I expect next?</li></ul><button class="button" id="client-questions">Show a question I can ask</button><p id="client-question" role="status"></p><p class="muted">This button only displays a suggested question. It does not contact anyone.</p></section></div>`;
+  main.querySelector('#client-questions').onclick=()=>{main.querySelector('#client-question').textContent='“Could you explain where my referral stands and what I should do next?”';};
+ }else{
+  main.innerHTML=`${heading('HOSPITAL REFERRAL STAFF','Prepare a clear handoff.','Keep referral preparation and follow-up separate from IHH’s internal review.')}${banner}<div class="guide-grid"><section class="panel"><h2>Example referral · DEMO-HOSPITAL-001</h2><span class="badge neutral">${hospitalDemo.submitted?'Simulated submission':hospitalDemo.prepared?'Example packet selected':'Draft example'}</span><h3>Prepare the packet</h3><p>Use the synthetic example to demonstrate a hospital handoff. This preview does not upload or send documents.</p><button class="button" id="hospital-prepare" ${hospitalDemo.submitted?'disabled':''}>Use synthetic example packet</button><h3>Handoff checklist</h3><ul><li>Confirm the referral and source records belong together.</li><li>Check legibility and original page order.</li><li>Identify open questions without guessing missing information.</li></ul><p class="muted">Suggested preparation checklist, not a confirmed IHH submission policy.</p><button class="button primary" id="hospital-submit" ${hospitalDemo.prepared&&!hospitalDemo.submitted?'':'disabled'}>Simulate referral submission</button><p id="hospital-status" role="status">${hospitalDemo.submitted?'Demo only: submission simulated. Nothing was sent or added to IHH’s queue.':''}</p></section><section class="panel"><h2>Follow-up with intake</h2><p>In a connected service, this view would show acknowledged receipt and requests for information from IHH.</p><p><strong>Receipt: not connected</strong></p><p>There are no real requests for information in this preview. The hospital view does not confirm eligibility, authorization or placement.</p><button class="button" id="hospital-reset">Reset hospital example</button></section></div>`;
+  main.querySelector('#hospital-prepare').onclick=()=>{hospitalDemo.prepared=true;renderExternalWorkspace();main.querySelector('#hospital-submit').focus();};
+  main.querySelector('#hospital-submit').onclick=()=>{hospitalDemo.submitted=true;renderExternalWorkspace();main.querySelector('#hospital-status').setAttribute('tabindex','-1');main.querySelector('#hospital-status').focus();};
+  main.querySelector('#hospital-reset').onclick=()=>{hospitalDemo.prepared=false;hospitalDemo.submitted=false;renderExternalWorkspace();main.querySelector('#hospital-prepare').focus();};
+ }
+}

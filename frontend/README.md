@@ -90,3 +90,5 @@ The current adapter validates the existing text-only response identity, version 
 Pages Actions activation was verified after the repository owner updated Source and environment branch rules. Subsequent eligible pushes to `codex/frontend-live` now publish automatically after the workflow passes. Do not use the old gh-pages branch-push script to publish.
 
 Analysis regression check: `node frontend/tests/analysis-state-browser.cjs` (local server running). Synthetic responses exercise pending analysis followed by completion, failure or unavailability; notes/rationale survive, old attestation clears, and confirmation uses the current revision. Backend assertion and version regressions are in `backend/tests/test_analysis.py`.
+
+The demo role selector separates the person receiving care, hospital referral staff and IHH intake staff. External views use synthetic examples only; this is not sign-in or access control. See [role workspaces and backend requirements](../docs/role-workspaces.md).
