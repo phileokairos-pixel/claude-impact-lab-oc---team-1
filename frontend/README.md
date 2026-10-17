@@ -10,7 +10,7 @@ From `frontend/`:
 npm start
 ```
 
-This uses Python 3's static server on port 4173, serving the repository parent directory so the local criteria and handoff links work. Navigate to the `/frontend/` path in your development browser. Alternatively run `python3 -m http.server 4173 --bind 0.0.0.0` from the repository root. Do not expose a server containing patient records publicly.
+This uses Python 3's static server on port 4173, serving the repository parent directory so the local criteria and handoff links work. Navigate to the `/frontend/` path in your development browser. Alternatively run `python3 -m http.server 4173 --bind 127.0.0.1` from the repository root. Do not expose a server containing patient records publicly.
 
 No npm installation, API keys, external fonts, or build step needed. Node.js is only needed for the npm shortcut and unit tests. Python 3 serves the files; the app is vanilla JavaScript/CSS with ES modules.
 

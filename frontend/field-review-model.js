@@ -14,7 +14,8 @@ export function invalidateFields(session,field){session.revision++;session.snaps
 export function saveField(session,index,{value,note,assessment,reviewer}){
  const f=session.fields[index];value=value.trim();note=note.trim();reviewer=reviewer.trim();
  if(!value)return 'Use an explicit unknown value instead of leaving this field blank.';
- if(value!==f.originalValue&&note.length<12)return 'Explain the correction in at least 12 characters.';
+ if((value!==f.originalValue||value!==f.value)&&note.length<12)return 'Explain the correction in at least 12 characters.';
+ if(value!==f.value&&f.history.length&&note===f.note)return 'Add a new explanation for this correction; the previous note describes an earlier value.';
  if(!reviewer)return 'Enter reviewer initials before confirming a field.';
  if(!['verified','unresolved'].includes(assessment))return 'Choose a review assessment.';
  if(assessment==='verified'&&f.status!=='extracted')return 'This example has unresolved source evidence. Keep it open for clarification.';

@@ -25,3 +25,9 @@ test('clarification includes only unresolved items and preserves redaction limit
  const s=createFieldReview();s.fields.forEach((_,i)=>review(s,i,{assessment:i===2?'verified':'unresolved'}));confirmFieldSummary(s,true);
  const draft=clarificationText(s.snapshot);assert.match(draft,/UNSENT CLARIFICATION/);assert.match(draft,/do not reconstruct the redacted date/);assert.match(draft,/Example source page\(s\): 1, 2/);assert.doesNotMatch(draft,/Please clarify the documented screening result/);
 });
+
+test('each subsequent field correction needs its own note',()=>{
+ const s=createFieldReview();assert.equal(review(s,0,{value:'First correction',note:'First correction evidence note.'}),'');
+ assert.match(review(s,0,{value:'Second correction',note:'First correction evidence note.'}),/new explanation/);
+ assert.match(review(s,0,{value:s.fields[0].originalValue,note:''}),/correction/);
+});
