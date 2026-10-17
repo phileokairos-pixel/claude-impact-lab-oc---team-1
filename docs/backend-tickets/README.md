@@ -1,10 +1,22 @@
 # Backend tickets — Team 1
 
-Review date: October 17, 2026. Reviewed `referral-review-repo.zip` in remote `main` at commit `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. ZIP was safely extracted outside the checkout; colleague's files were not edited. Assigned collaborators: @harjeev and @VibhuA-ai. Harjeev leads BE-02, BE-03, BE-05, and BE-07; Vibhu leads BE-01, BE-04, and BE-06. Both support BE-03, BE-04, and BE-07. Assignment is recorded in these files and the temporary site board, not GitHub Issues/Projects (creation is blocked).
+**GitHub Issues is now the primary tracker.** All seven tickets are published with assignees and acceptance criteria. @phileokairos-pixel is covering @VibhuA-ai’s work; @harjeev leads extraction and evaluation. The site board is a navigation snapshot, not a live Project mirror. Project access remains unavailable to this integration; a team member must verify its import rule and collaborator access.
 
-**Status: BE-01, BE-02, and BE-04 are in progress with a tested local implementation; other tickets remain open.** These are ready-to-copy issue bodies, not published GitHub issues. GitHub API access now works, but the repository has Issues disabled. Creating an issue returns HTTP 410; enabling Issues returns HTTP 403 for this integration. Creating the requested GitHub Project also returns `Resource not accessible by integration (createProjectV2)`. The tickets remain published Markdown, not GitHub Issues or Project items. A temporary frontend team board is provided separately; it is not a GitHub Project.
+See [team handoff](../team-handoff.md) for owners, setup and the next integration checkpoint. BE-01, BE-02 and BE-04 have partial local implementations; no ticket is complete merely because its starting slice exists.
 
-## What exists
+| Ticket | GitHub Issue | Lead |
+|---|---|---|
+| BE-01 | [API and runtime](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/2) | phileokairos-pixel |
+| BE-02 | [OCR and citations](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/3) | harjeev |
+| BE-03 | [Extraction contract](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/4) | harjeev |
+| BE-04 | [Human review](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5) | phileokairos-pixel |
+| BE-05 | [Blind evaluation](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/6) | harjeev |
+| BE-06 | [Measurement](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/7) | phileokairos-pixel |
+| BE-07 | [Fixture separation](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/8) | harjeev; phileokairos-pixel supports |
+
+The detailed Markdown below records the original review of `referral-review-repo.zip` at `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. It is historical evidence, not a statement that the current branch still lacks the subsequently implemented local API.
+
+## Original archive contents
 
 - A static HTML review page with hardcoded packet summaries, rule findings, actual IHH decisions, and response templates.
 - A Python script that calls Anthropic on pre-generated OCR text and a separate scoring function.
@@ -24,7 +36,7 @@ Review date: October 17, 2026. Reviewed `referral-review-repo.zip` in remote `ma
 
 **First milestone:** one permitted PDF → real job progress → actual extracted fields/findings with page citations → coordinator corrections → clarification draft. Keep approval disabled until applicable criteria coverage and review requirements are implemented. Do not spend today on EHR integration, real fax delivery, payer integrations, or production deployment.
 
-Frontend owner can build against the BE-03 response contract immediately. The frontend currently lives in `frontend/`, and the broader design/research contract is in `docs/frontend-research-and-handoff.md`. Existing frontend code is local and not yet pushed; coordinate integration on one agreed commit.
+Frontend owner can build against the BE-03 response contract immediately. The frontend currently lives in `frontend/`, and the broader design/research contract is in `docs/frontend-research-and-handoff.md`. The frontend and local backend are pushed on `codex/frontend-live`; integrate through pull requests targeting that branch.
 
 ## Confirmed review findings
 

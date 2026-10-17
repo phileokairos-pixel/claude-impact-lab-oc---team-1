@@ -7,11 +7,11 @@
       "priority": "P0",
       "status": "In progress",
       "assignees": [
-        "VibhuA-ai"
+        "phileokairos-pixel"
       ],
       "lane": "API & workflow",
       "dependsOn": [],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-01-api-and-runtime.md",
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/2",
       "progressNote": "Local upload/job API implemented. Clinical analysis jobs and durable hosted service remain."
     },
     {
@@ -26,7 +26,7 @@
       "dependsOn": [
         "BE-01"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-02-ocr-and-pages.md",
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/3",
       "progressNote": "Local rendering, OCR, original-page citations and text search implemented. Orientation/quality checks and structured extraction remain."
     },
     {
@@ -36,13 +36,13 @@
       "status": "Todo",
       "assignees": [
         "harjeev",
-        "VibhuA-ai"
+        "phileokairos-pixel"
       ],
       "lane": "Document analysis",
       "dependsOn": [
         "BE-02"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-03-analysis-contract.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/4"
     },
     {
       "id": "BE-04",
@@ -50,14 +50,14 @@
       "priority": "P0",
       "status": "In progress",
       "assignees": [
-        "VibhuA-ai",
+        "phileokairos-pixel",
         "harjeev"
       ],
       "lane": "API & workflow",
       "dependsOn": [
         "BE-03"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-04-human-review.md",
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5",
       "progressNote": "Local versioned review and stale-draft invalidation implemented. Full rule-dependent review, authentication and durable audit remain."
     },
     {
@@ -72,7 +72,7 @@
       "dependsOn": [
         "BE-03"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-05-evaluation.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/6"
     },
     {
       "id": "BE-06",
@@ -80,7 +80,7 @@
       "priority": "P1",
       "status": "Todo",
       "assignees": [
-        "VibhuA-ai"
+        "phileokairos-pixel"
       ],
       "lane": "API & workflow",
       "dependsOn": [
@@ -89,7 +89,7 @@
         "BE-03",
         "BE-04"
       ],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-06-measurement.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/7"
     },
     {
       "id": "BE-07",
@@ -98,11 +98,11 @@
       "status": "Todo",
       "assignees": [
         "harjeev",
-        "VibhuA-ai"
+        "phileokairos-pixel"
       ],
       "lane": "Team lead",
       "dependsOn": [],
-      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/blob/codex/frontend-live/docs/backend-tickets/BE-07-fixture-separation.md"
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/8"
     }
   ]
 }
