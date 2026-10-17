@@ -19,3 +19,14 @@ The backend static allowlist, build script and Pages artifact allowlist include 
 This pass refines the existing upload/review/role screens. A real multi-referral work queue still needs a backend listing contract, authorized scope and real workflow statuses; it is not implemented by this visual update.
 
 Validation: frontend unit suite, build, role/mobile workflow, synthetic demo, field review, API recovery and backend suite passed. Confirmed the local server loads the actual font and inspected desktop/client mobile screenshots using synthetic content.
+
+
+## Readability follow-up
+
+The application now uses the platform system sans-serif stack for a wider, familiar
+reading face, with a consistent 16px body, 14px labels and restrained heading weights.
+Green palette remains unchanged. Source Sans assets remain packaged for existing
+references. Coordination tasks include visible explanations and associated help text;
+the tablet layout stacks these panels and the inbox table fits its available width.
+This stylesheet update follows Aaron’s explicit typography request; reconcile it
+with Neetal’s presentation changes when her branch is available.

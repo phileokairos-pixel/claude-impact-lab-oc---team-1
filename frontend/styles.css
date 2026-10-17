@@ -35,3 +35,27 @@ main{padding:34px 36px 48px;max-width:1440px}.panel{box-shadow:none}.panel-headi
 @media(max-width:520px){.flow-summary{gap:10px;flex-direction:column}.completeness-list li{align-items:flex-start;flex-direction:column}.queue-table-wrap{max-width:100%}}
 .embedded-fields{margin:24px 0;padding:24px 0;border-block:1px solid var(--line)}
 @media(max-width:700px){.queue-table{min-width:0;display:block}.queue-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.queue-table tbody,.queue-table tr{display:block}.queue-table tr+tr{border-top:2px solid var(--line)}.queue-table td{display:block;border:0;padding:8px 16px;overflow-wrap:anywhere}.queue-table td:first-child{padding-top:18px}.queue-table td:last-child{padding-bottom:18px}.queue-table td:before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}.queue-table-wrap{overflow:visible}}
+
+/* Readable coordination workspace: one type family, clear labels, room for explanations. */
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.6}
+h1{font-size:clamp(28px,2.6vw,36px);font-weight:650;line-height:1.2;letter-spacing:-.035em}
+h2{font-size:23px;font-weight:650;line-height:1.3;letter-spacing:-.025em}
+h3{font-size:17px;font-weight:600;line-height:1.5;letter-spacing:0}
+.brand,.brand-sub,.brand-icon,.upload-aside h2,.receipt h2{font-family:inherit}
+.brand{font-size:27px;letter-spacing:-.04em}.brand-sub{font-size:12px;letter-spacing:0}
+.nav-item{font-size:14px;line-height:1.4}.page-heading p{font-size:16px;line-height:1.65}
+.guide-grid p,.guide-grid li{font-size:16px;line-height:1.65}.guide-grid h3{font-size:17px}
+.field-label{font-size:14px;font-weight:650;line-height:1.5}.badge{font-size:12px;line-height:1.5}
+.notice{font-size:14px;line-height:1.65}.muted{font-size:14px;line-height:1.6}
+.flow-key{margin:12px 0 28px;max-width:75ch}.flow-summary{font-size:14px;font-variant-numeric:tabular-nums}
+.intake-coordination{align-items:start;gap:24px}.intake-coordination .panel>h2{margin-bottom:12px}
+.checklist-item{padding:20px 0;border-bottom:1px solid var(--line)}
+.checklist-item .field-label{margin-bottom:6px}.checklist-item .checklist-help{font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 12px;max-width:60ch}.checklist-item select{margin-bottom:0}
+.thread-item h3{font-weight:550;line-height:1.6}.thread-item .badge{margin-bottom:12px}
+.queue-table{min-width:0;table-layout:fixed;font-size:14px;line-height:1.6}
+.queue-table th,.queue-table td{padding:16px 12px;overflow-wrap:anywhere}.queue-table th{font-size:12px;line-height:1.5}
+.queue-table th:nth-child(1){width:20%}.queue-table th:nth-child(2){width:14%}.queue-table th:nth-child(3){width:23%}.queue-table th:nth-child(4){width:25%}.queue-table th:nth-child(5){width:18%}
+.queue-table small{font-size:12px;line-height:1.6}.queue-table .text-button{font-size:15px;font-weight:600}
+#onboarding-status{margin-top:16px}#onboarding-snapshot h3{margin-top:20px}
+@media(min-width:851px) and (max-width:1200px){.intake-coordination{grid-template-columns:1fr}.role-bar{flex-wrap:wrap}.role-context{flex-basis:100%}}
+@media(max-width:520px){h1{font-size:28px}h2{font-size:22px}.guide-grid .panel{padding:20px}.brand{font-size:26px}.queue-table td{padding:10px 16px}.role-bar #take-tour{width:100%}}

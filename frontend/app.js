@@ -45,7 +45,7 @@ function focusHeading(){main.querySelector('h1')?.setAttribute('tabindex','-1');
 function go(screen){if(stopBackendView?.canLeave&&!stopBackendView.canLeave())return;state.screen=screen;render();focusHeading();}
 function reset(){if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{demo:false,file:null,url:null,backendId:null,findings:[],outcome:null,outcomeDraft:{},events:[],fields:null,fieldReview:null,filter:'all',selected:'MOB-4',page:1,zoom:100,rotation:0});go('upload');}
 function renderInboxPage(){
- main.innerHTML=`${heading('IHH INTAKE','Referral inbox','Choose a referral to review its status, open questions and next action.')}<div class="view-switch"><p class="muted">Shared synthetic referrals · local PDFs remain in the separate review workspace.</p><button id="inbox-open-packet" class="button primary">${state.file||state.demo?'Resume packet review':'Open a packet'}</button></div><div id="inbox-content"></div>`;
+ main.innerHTML=`${heading('IHH INTAKE','Referral inbox','Choose a referral to review its status, open questions and next action.')}<div class="view-switch"><p class="muted">Practice with the example referrals below, or open a PDF in the packet review workspace.</p><button id="inbox-open-packet" class="button primary">${state.file||state.demo?'Resume packet review':'Open a packet'}</button></div><div id="inbox-content"></div>`;
  main.querySelector('#inbox-open-packet').onclick=()=>go(state.outcome?'outcome':state.file||state.findings.length?'review':'upload');
  renderInbox(main.querySelector('#inbox-content'),{onOpen:id=>{workflowId=id;go('workflow');}});
 }
