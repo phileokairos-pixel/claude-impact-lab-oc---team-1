@@ -1,9 +1,11 @@
+import {createFieldReview} from './field-review-model.js';
+import {renderFieldReview} from './field-review.js';
 import {detectBackend,openBackendReview} from './backend-client.js';
 import {createFindings,sourcePages,labels,decisionProblem,validateFile} from './model.js';
 const main=document.querySelector('#main');
 let stopBackendView=null;
 let backend=null;
-const state={screen:'upload',demo:false,file:null,url:null,backendId:null,findings:[],selected:'MOB-4',page:1,filter:'all',outcome:null,events:[],fields:null,zoom:100,rotation:0};
+const state={screen:'upload',demo:false,file:null,url:null,backendId:null,findings:[],selected:'MOB-4',page:1,filter:'all',outcome:null,events:[],fields:null,fieldReview:null,zoom:100,rotation:0};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const log=(type,detail={})=>state.events.push({type,at:new Date().toISOString(),...detail});
 const toast=text=>{const el=document.querySelector('#toast');el.textContent=text;el.classList.add('visible');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove('visible'),4000);};
@@ -18,9 +20,9 @@ function render(){
 }
 function focusHeading(){main.querySelector('h1')?.setAttribute('tabindex','-1');main.querySelector('h1')?.focus();}
 function go(screen){state.screen=screen;render();focusHeading();}
-function reset(){if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{demo:false,file:null,url:null,backendId:null,findings:[],outcome:null,events:[],fields:null,filter:'all',selected:'MOB-4',page:1,zoom:100,rotation:0});go('upload');}
+function reset(){if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{demo:false,file:null,url:null,backendId:null,findings:[],outcome:null,events:[],fields:null,fieldReview:null,filter:'all',selected:'MOB-4',page:1,zoom:100,rotation:0});go('upload');}
 function renderUpload(){main.innerHTML=`${heading('REFERRAL INTAKE','Less searching. More caring.','Bring the evidence together, then make the next step a human decision.')}${steps(0)}<div class="upload-layout"><section class="panel upload-panel"><div class="panel-heading"><h2>Start a referral review</h2><span class="badge neutral">01 / 03</span></div><div id="dropzone" class="dropzone"><div class="upload-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></div><h3>Add a referral packet</h3><p>Choose a de-identified event PDF to preview locally.</p><label class="button primary file-label">Choose PDF<input id="file-input" type="file" accept="application/pdf,.pdf"></label><span class="drop-hint">or drop a PDF here · up to 25 MB</span><p id="upload-error" class="error" role="alert"></p></div><div class="privacy-note"><span aria-hidden="true">◇</span><p><strong>Your file stays in this browser.</strong><br>PDF preview works. Extraction and eligibility analysis are not connected. Do not upload identifiable patient records.</p></div><div class="divider"><span>EXPLORE THE WORKING DEMO</span></div><button id="demo" class="demo-card"><span class="document-icon">▤</span><span><strong>Try a synthetic referral</strong><small>3 example pages · 3 findings to review · no patient data</small></span><span class="arrow">→</span></button></section><aside class="upload-aside"><div class="eyebrow">A CLEARER PATH TO A DECISION</div><h2>Every finding.<br>Backed by evidence.</h2><div class="feature"><span>01</span><div><h3>One place to review</h3><p>Keep the packet and relevant criteria side by side.</p></div></div><div class="feature"><span>02</span><div><h3>See what needs attention</h3><p>Distinguish conflicts, missing evidence, and redacted information.</p></div></div><div class="feature"><span>03</span><div><h3>You confirm the next step</h3><p>Review the evidence, record your rationale, and prepare a response.</p></div></div><div class="target-note"><span class="small-orb"></span><p><strong>Aiming for less review time</strong><br>Time savings are a goal. This prototype has not measured clinical review performance.</p></div></aside></div>`;
- main.querySelector('#demo').onclick=()=>{if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{demo:true,file:null,url:null,findings:createFindings(),outcome:null,events:[],fields:null,page:1,selected:'MOB-4',filter:'all',zoom:100,rotation:0});log('demo_loaded');go('review');};
+ main.querySelector('#demo').onclick=()=>{if(state.url)URL.revokeObjectURL(state.url);Object.assign(state,{demo:true,file:null,url:null,findings:createFindings(),outcome:null,events:[],fields:null,fieldReview:null,page:1,selected:'MOB-4',filter:'all',zoom:100,rotation:0});log('demo_loaded');go('review');};
  main.querySelector('#file-input').onchange=e=>loadFile(e.target.files[0]);const dz=main.querySelector('#dropzone');dz.ondragover=e=>{e.preventDefault();dz.classList.add('dragging');};dz.ondragleave=()=>dz.classList.remove('dragging');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('dragging');if(e.dataTransfer.files.length!==1){main.querySelector('#upload-error').textContent='Choose one PDF at a time.';return;}loadFile(e.dataTransfer.files[0]);};
 }
 let fileRequest=0;
@@ -46,18 +48,14 @@ function renderGuide(){main.innerHTML=`${heading('PROTOTYPE GUIDE','Built around
 document.querySelector('#nav-intake').onclick=()=>go(state.outcome?'outcome':state.findings.length||state.file?'review':'upload');document.querySelector('#nav-guide').onclick=()=>go('guide');render();
 
 function renderFields(){
- if(!state.fields)state.fields=[
-  {id:'mobility',label:'Mobility / transfer independence',value:'Referral summary: independent. Therapy note: assistance required.',source:1,status:'Conflicting evidence'},
-  {id:'self_medication',label:'Self-administers medications',value:'Not documented in example packet',source:1,status:'Unknown'},
-  {id:'covid_result',label:'COVID screening result',value:'Negative result documented',source:3,status:'Mock extraction'},
-  {id:'covid_date',label:'COVID collection date',value:'Redacted in example',source:3,status:'Date redacted'},
-  {id:'authorization',label:'Authorization status',value:'Request included; approval not documented',source:1,status:'Unverified'},
-  {id:'authorized_stay',label:'Length of stay authorized',value:'Not documented in example packet',source:1,status:'Unknown'}
- ];
- main.innerHTML=`${heading('REFERRAL FORM REVIEW','Prefilled. Still yours to verify.','Check suggested fields against the packet before carrying them into a response.')}${steps(1)}${demoBanner()}<div class="view-switch"><p>Example subset of the IHH form · <strong>mock prefill, no document extraction</strong></p><button id="back-to-findings" class="button">← Criteria & evidence</button></div><div class="notice">Demographics and other form fields are not populated in this demo. Unknown fields stay unknown. Reviewing a field does not establish clinical eligibility.</div><div class="form-field-grid">${state.fields.map((f,i)=>`<form class="panel field-card" data-field="${i}"><div class="finding-meta"><span>${f.status}</span><span>${f.reviewed?'✓ Human reviewed':'Needs verification'}</span></div><label class="field-label" for="field-${i}">${f.label}</label><textarea id="field-${i}" rows="2">${esc(f.value)}</textarea><div class="field-source"><button type="button" class="text-button" data-source="${i}">View example source · p. ${f.source} →</button></div><label class="field-label" for="note-${i}">Correction note (required if value changes)</label><input id="note-${i}" value="${esc(f.note||'')}" placeholder="Why did you change this field?"><p class="error" role="alert"></p><button class="button" type="submit">${f.reviewed?'Update field':'Confirm field'}</button></form>`).join('')}</div><div class="callout"><strong>Backend integration point</strong><p>Real prefill must include a document ID, page, source text or image region, and an explicit missing / redacted / conflicting status. Never use the synthetic values for an uploaded PDF.</p></div>`;
- main.querySelector('#back-to-findings').onclick=()=>go('review');
- main.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{const f=state.fields[Number(b.dataset.source)];state.page=f.source;state.selected=f.source===3?'INF-2':f.id==='self_medication'?'COG-1':'MOB-4';go('review');main.querySelector('.source-panel').scrollIntoView({behavior:'smooth',block:'center'});});
- main.querySelectorAll('[data-field]').forEach(form=>form.onsubmit=e=>{e.preventDefault();const i=Number(form.dataset.field),f=state.fields[i],value=form.querySelector('textarea').value.trim(),note=form.querySelector('input').value.trim();if(!value){form.querySelector('.error').textContent='Use an explicit unknown value instead of leaving this field blank.';return;}if(value!==f.value&&note.length<12){form.querySelector('.error').textContent='Explain the correction in at least 12 characters.';return;}log('field_reviewed',{fieldId:f.id,previousValue:f.value,value,note});Object.assign(f,{value,note,reviewed:true});state.outcome=null;renderFields();toast('Field reviewed. Criteria assessment remains separate.');});
+ if(!state.demo){go('review');return;}
+ if(!state.fieldReview)state.fieldReview=createFieldReview();
+ state.fields=state.fieldReview.fields;
+ renderFieldReview({container:main,session:state.fieldReview,onBack:()=>go('review'),onChange:field=>{
+  state.outcome=null;
+  const finding=state.findings.find(f=>f.id===field.findingId);if(finding)finding.reviewed=false;
+  log('field_review_changed',{fieldId:field.id,revision:state.fieldReview.revision});
+ }});
 }
 
 detectBackend().then(result=>{backend=result;if(state.screen==='review'&&!state.demo&&!stopBackendView)render();});
