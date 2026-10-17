@@ -232,17 +232,31 @@ class PacketService:
                             record['pages'][index]['appearsBlank'] = blank
                         text = page.get_text('text').strip()
                         method = 'pdf-text'
+                        fallback_flags = []
                         if len(text) < 30:
                             with self.lock:
                                 record['job']['state'] = 'extracting'
-                            text = self.ocr(image_path)
-                            method = 'ocr'
+                            native_text = text
+                            try:
+                                ocr_text = self.ocr(image_path)
+                            except Exception:
+                                if not native_text:
+                                    raise
+                                # Preserve readable PDF text when optional OCR fails; never log OCR errors.
+                                fallback_flags = ['ocr_failed', 'native_text_fallback']
+                            else:
+                                if ocr_text:
+                                    text, method = ocr_text, 'ocr'
+                                elif native_text:
+                                    fallback_flags = ['ocr_no_text', 'native_text_fallback']
+                                else:
+                                    text, method = '', 'ocr'
                         with self.lock:
                             record['pages'][index].update(
                                 state='ready' if text else 'no_text_detected',
                                 text=text[:100000], truncated=len(text)>100000, extractionMethod=method,
                                 quality='unverified' if text else 'no_text_detected',
-                                qualityFlags=quality_flags(method, text, blank),
+                                qualityFlags=quality_flags(method, text, blank) + fallback_flags,
                             )
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         with self.lock:

@@ -13,3 +13,6 @@ test('referrals and responses remain isolated and attachment is an explicit fixt
 test('CRM handoff separates confirmed source fields from unresolved or edited ones',()=>{
  const r=createReferralFlow().records[0];const fields=[{id:'verified',reviewed:true,assessment:'verified'},{id:'edited',reviewed:true,assessment:'verified',draft:{value:'unsaved'}},{id:'unknown',reviewed:true,assessment:'unresolved'}];const data=crmHandoff(r,'QA',true,fields);assert.deepEqual(data.confirmedClinicalFields.map(f=>f.id),['verified']);assert.deepEqual(data.unresolvedFields.map(f=>f.id),['edited','unknown']);
 });
+test('new responses take priority even when another clarification is outstanding',()=>{
+ const r=createReferralFlow().records[0];const q=askQuestion(r,'mobility');askQuestion(r,'medication');answerQuestion(r,q.id,{unavailable:true});assert.equal(stage(r),'Response needs review');reviewResponse(r,q.id);assert.equal(stage(r),'Waiting for referrer');
+});

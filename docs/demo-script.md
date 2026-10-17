@@ -9,7 +9,7 @@ python3 -m pip install -r backend/requirements-dev.txt
 npm --prefix frontend run build
 python3 -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
-Open http://127.0.0.1:8000/ , choose a PDF, press **Extract text with local backend**, save a page note, record a next step.
+Open http://127.0.0.1:8000/ , select **Review packet**, choose a PDF, press **Extract text with local backend**, save a page note, record a next step.
 
 ## What works today
 Upload, text/OCR with original page numbers and per-page flags, search, page notes, next-step confirmation, unsent draft. The local browser also supports draft-contract field review, allowed-action reasons and reviewed export when analysis produces fields. Timing events and summary remain API-only (see `docs/backend-review-contract.md`).
@@ -46,3 +46,5 @@ The two-hour clock is a provisional demo target. Source information conflicts ab
 - Real-model extraction remains unvalidated. If demonstrating it, verify the configured model and use permitted inputs; otherwise explicitly demonstrate the synthetic adapter/local OCR paths.
 - Compare closed implementation PRs with issue acceptance criteria before closing tickets. Implementation merges do not prove real-model validation, measured time savings or production readiness.
 - Public navigation and deployment exclude the internal team board. GitHub Issues/Projects remains the team tracker.
+
+The app now starts on a dedicated Referral inbox screen. **Review packet** opens or resumes the separate packet workspace. Sidebar selection and breadcrumbs follow the current screen; returning through DEMO-001 preserves its review state. New responses sort ahead of waiting requests even when another request remains unanswered.

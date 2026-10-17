@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
    else if(path.endsWith('/draft'))body={version:record.version,sent:false,text:'SYNTHETIC unsent draft'};
    await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
   });
-  await page.goto('http://127.0.0.1:8000/');
+  await page.goto('http://127.0.0.1:8000/');await page.click('#nav-intake');
   await page.locator('#file-input').setInputFiles({name:'synthetic.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF- synthetic')});
   await page.locator('#extract-local').click();await page.locator('#local-note').waitFor();
   await page.locator('#local-reviewer').fill('QA');await page.locator('#local-note').fill('Synthetic source note retained.');await page.locator('#local-rationale').fill('Synthetic rationale retained.');await page.locator('#local-attested').check();

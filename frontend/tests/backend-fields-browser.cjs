@@ -1,7 +1,7 @@
 // Run with backend/tests/field_browser_server.py (real API, synthetic analysis adapter).
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const assert=require('node:assert/strict');
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{
- const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:8001/');await p.locator('#file-input').setInputFiles('/tmp/merged-synthetic.pdf');await p.click('#extract-local');await p.locator('[data-local-field="0"]').waitFor();assert.equal(await p.locator('#local-outcome button').isDisabled(),true);
+ const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:8001/');await p.click('#nav-intake');await p.locator('#file-input').setInputFiles('/tmp/merged-synthetic.pdf');await p.click('#extract-local');await p.locator('[data-local-field="0"]').waitFor();assert.equal(await p.locator('#local-outcome button').isDisabled(),true);
  await p.fill('#local-reviewer','QA');await p.fill('#local-note','Synthetic source page checked.');await p.click('#local-review button');await p.getByText('Page review saved. Any earlier confirmation and draft are now invalidated.').waitFor();
  assert.equal(await p.locator('#lf-value-2').getAttribute('readonly'),'');assert.equal(await p.locator('#lf-assessment-0 option[value="verified"]').count(),0);
  await p.fill('#lf-note-0','Retained while navigating cited pages.');await p.locator('[data-local-field="0"] [data-field-page="2"]').click();assert.equal(await p.locator('#local-page').inputValue(),'2');assert.match(await p.locator('#lf-note-0').inputValue(),/Retained/);

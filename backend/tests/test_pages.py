@@ -39,6 +39,22 @@ class PageTests(unittest.TestCase):
             time.sleep(.02)
         self.fail('job did not finish')
 
+    def test_short_native_text_survives_empty_or_failed_ocr(self):
+        def fail(image):
+            raise RuntimeError('Synthetic OCR failure')
+        for ocr, flag in ((lambda image: '', 'ocr_no_text'), (fail, 'ocr_failed')):
+            with self.subTest(flag=flag):
+                c = self.open(ocr)
+                pid, rec = self.process(c, pdf([('Synthetic short note', 0)]))
+                page = rec['pages'][0]
+                self.assertEqual(page['text'], 'Synthetic short note')
+                self.assertEqual(page['state'], 'ready')
+                self.assertEqual(page['extractionMethod'], 'pdf-text')
+                self.assertIn(flag, page['qualityFlags'])
+                self.assertIn('native_text_fallback', page['qualityFlags'])
+                self.assertEqual(page['quality'], 'unverified')
+                self.assertEqual(c.get(f'/api/referrals/{pid}/search', params={'q': 'short note'}).json()['matches'][0]['page'], 1)
+
     def test_pages_one_and_three_keep_their_markers_and_page_two_is_flagged(self):
         c = self.open()
         long = ' synthetic filler text to exceed the native text threshold'

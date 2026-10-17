@@ -100,3 +100,5 @@ See `docs/adoption-and-demo-strategy.md` for the staged adoption plan. Keep exis
 ## Offline evaluation (BE-05)
 
 `python3 -m backend.evaluation suggest|score`. Separate steps; `score` needs no key or network. See `docs/backend-tickets/BE-05-evaluation.md`. Packet text, runs and suggestions are derived clinical content: keep them under git-ignored paths such as `runtime/`.
+
+Short readable native PDF text is retained if optional OCR fails or returns no text. The page retains original numbering and reports `native_text_fallback` plus `ocr_failed` or `ocr_no_text`; all extracted text remains unverified.

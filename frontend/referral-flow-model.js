@@ -6,7 +6,7 @@ export function createReferralFlow(now=Date.now()){
  return {mode:'synthetic-demo',records:[record('DEMO-001','Hospital · synthetic',85),record('DEMO-002','SNF · synthetic',35),record('DEMO-003','Community · synthetic',12)],draft:{prepared:false,submittedId:null,gapsAcknowledged:false,items:[{label:'Referral summary',status:'present'},{label:'Therapy / transfer note',status:'missing'},{label:'Medication self-administration',status:'unknown'},{label:'Screening collection date',status:'redacted'}]}};
 }
 export function changeRecord(r,type,detail,now=Date.now()){r.revision++;r.exportedRevision=null;r.events.push({type,detail,at:now,revision:r.revision});}
-export function stage(r){return r.questions.some(q=>!q.response)?'Waiting for referrer':r.questions.some(q=>!q.reviewed)?'Response needs review':'Ready for intake review';}
+export function stage(r){return r.questions.some(q=>q.response&&!q.reviewed)?'Response needs review':r.questions.some(q=>!q.response)?'Waiting for referrer':'Ready for intake review';}
 export function remainingMinutes(r,now=Date.now()){return Math.ceil((r.receivedAt+120*60000-now)/60000);}
 export function submitReferral(flow,now=Date.now()){
  if(flow.draft.submittedId)return flow.records.find(r=>r.id===flow.draft.submittedId);
