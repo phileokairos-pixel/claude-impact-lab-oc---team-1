@@ -90,3 +90,7 @@ The browser workflow was tested using the public blank referral form: actual PDF
 - BE-04: local next-step guards and stale-draft invalidation work. Complete rule-dependent invalidation, authenticated reviewers, durable audit and idempotency remain.
 
 See `docs/adoption-and-demo-strategy.md` for the staged adoption plan. Keep existing synthetic demo and real-text workflow clearly separated.
+
+## Offline evaluation (BE-05)
+
+`python3 -m backend.evaluation suggest|score`. Separate steps; `score` needs no key or network. See `docs/backend-tickets/BE-05-evaluation.md`. Packet text, runs and suggestions are derived clinical content: keep them under git-ignored paths such as `runtime/`.
