@@ -120,9 +120,18 @@ class ReviewApiTests(unittest.TestCase):
         f = self.field(body, 'covid_result')
         self.assertEqual((f['value'], f['review']['correctedValue'], f['review']['effectiveValue'], f['review']['sourcePage']),
                          ('negative', 'positive', 'positive', 2))
-        back = self.edit('covid_result', value='negative', assessment='verified').json()      # restore the original
+        back = self.edit('covid_result', value='negative', assessment='verified', note='Rechecked original source and reversed the prior correction.', page=1).json()      # restore the original
         self.assertIsNone(self.field(back, 'covid_result')['review']['correctedValue'])
         self.assertEqual(len(self.field(back, 'covid_result')['review']['history']), 2)
+
+    def test_reversal_requires_new_reason_and_source(self):
+        note = 'Synthetic correction based on source page two.'
+        self.assertEqual(self.edit('covid_result', value='positive', note=note, page=2).status_code, 200)
+        version = self.record()['version']
+        self.assertEqual(self.edit('covid_result', value='negative', assessment='verified').status_code, 422)
+        self.assertEqual(self.edit('covid_result', value='negative', note=note, page=1).status_code, 422)
+        self.assertEqual(self.record()['version'], version)
+        self.assertEqual(self.edit('covid_result', value='negative', note='Rechecked the original and reversed the previous correction.', page=1).status_code, 200)
 
     def test_ticking_checked_cannot_resolve_conflicting_missing_redacted_or_unreadable(self):
         for fid, status, original in [('mobility', 'conflicting', 'independent'), ('self_med', 'missing', 'unknown'),
@@ -274,7 +283,7 @@ class ReviewApiTests(unittest.TestCase):
     def test_history_accumulates_and_the_original_is_never_overwritten(self):
         self.edit('self_med', value='Nurse note says yes.', note='Nurse note on page 2 states this.', page=2)
         self.edit('self_med', value='Nurse note says no.', note='Corrected after rereading page 2 carefully.', page=2)
-        self.edit('self_med', value='unknown')
+        self.edit('self_med', value='unknown', note='Reverted to unknown after reviewing conflicting source text.', page=2)
         f = self.field(self.record(), 'self_med')
         history = f['review']['history']
         self.assertEqual((f['value'], f['status'], len(history)), (None, 'missing', 3))

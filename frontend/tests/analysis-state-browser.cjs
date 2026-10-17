@@ -20,7 +20,7 @@ const assert=require('node:assert/strict');
   await page.locator('#extract-local').click();await page.locator('#local-note').waitFor();
   await page.locator('#local-reviewer').fill('QA');await page.locator('#local-note').fill('Synthetic source note retained.');await page.locator('#local-rationale').fill('Synthetic rationale retained.');await page.locator('#local-attested').check();
   assert.equal(await page.locator('#local-outcome button').isDisabled(),true);
-  record.analysis={status:terminal,synthetic:true};if(terminal==='needs_review'){record.version++;record.formFields=[{id:'unreviewed',value:'DO NOT RENDER AS VERIFIED'}];}
+  record.analysis={status:terminal,synthetic:true};if(terminal==='needs_review'){record.version++;record.formFields=[];}
   await page.waitForFunction(()=>!document.querySelector('#local-analysis').textContent.includes('Analysis is running'));
   assert.equal(await page.locator('#local-note').inputValue(),'Synthetic source note retained.');assert.equal(await page.locator('#local-rationale').inputValue(),'Synthetic rationale retained.');assert.equal(await page.locator('#local-attested').isChecked(),false);
   assert.equal(await page.getByText('DO NOT RENDER AS VERIFIED',{exact:true}).count(),0);

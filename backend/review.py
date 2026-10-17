@@ -93,9 +93,14 @@ def apply_field_review(record: dict, field_id: str, body: FieldReviewInput, now=
                      'Keep it unresolved and request clarification or clinical review.')
     original_text = _text(original)
     corrected = (value != original_text) if original_text is not None else (value.lower() != UNKNOWN)
-    if corrected:
+    effective_before = effective_value(field)
+    effective_after = value if corrected else original
+    changed = effective_after != effective_before
+    if corrected or changed:
         if len(body.note) < MIN_CORRECTION_NOTE:
             _reject(422, f'Explain the correction in at least {MIN_CORRECTION_NOTE} characters.')
+        if changed and field['review'].get('reviewed') and body.note == field['review'].get('note'):
+            _reject(422, 'Add a new explanation for this change; the previous note describes an earlier value.')
         if body.page is None:
             _reject(422, 'Name the source page that supports the correction.')
     if body.page is not None and body.page > len(record['pages']):

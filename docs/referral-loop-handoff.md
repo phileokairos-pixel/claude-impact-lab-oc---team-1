@@ -20,12 +20,12 @@ Two hours was described both as baseline and target in supplied information. The
 
 ## Backend integration boundaries reviewed
 
-- PR #14 / docs/backend-review-contract.md: versioned field PATCH, allowedActions and human-confirmed export. Its field review gate must be implemented in the real frontend adapter before enabling analysis; the synthetic model is not that contract.
+- PR #14 / docs/backend-review-contract.md: versioned field PATCH, allowedActions and human-confirmed export. The local frontend now implements its field review gate and server-reviewed export; the shared synthetic queue is still a separate demo.
 - PR #18 (merged by the team during this work): extraction adapter and schema remain draft and require agreed field IDs/model validation.
 - PR #20 has been merged into the still-open #14 branch: elapsed vs active timing, explicit pause/wait events, null unknowns and no claimed savings. The demo clock does not replace this instrumentation.
 - Still needed: authenticated organization-scoped referral listing, durable submission IDs/receipts, completeness assessment provenance, clarification thread/attachment endpoints, staff review versions and audit. Do not introduce a parallel clinical schema by copying these browser fixtures.
 
-The team merged #16–#19 into the integration branch during this frontend work; those changes were incorporated and the combined 80-test backend suite passed. #14 (including #20 timing) remains pending. The public UI is still synthetic, not a live backend integration.
+The team merged #16–#19 into the integration branch during this frontend work; those changes were incorporated and the combined 80-test backend suite passed. #14 (including #20 timing) is now merged; local field review is connected, but the shared queue is not a multi-user backend. The public UI is still synthetic, not a live backend integration.
 
 ## Demonstration
 

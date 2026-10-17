@@ -28,7 +28,7 @@ from typing import Any, Callable
 
 from backend.analysis import DEFAULT_CRITERIA_DIR, AnalysisError, AnalysisSettings, _anthropic_client, API_KEY_ENV
 
-SCHEMA_VERSION = 'eval-suggestion-1'
+SCHEMA_VERSION = 'eval-suggestion-2'  # evidence-type validation changed; do not reuse older caches
 PROMPT_VERSION = 'blind-v2'
 CRITERIA_FILES = ('admission-criteria.json', 'admission-criteria.md',
                   'childrens-admission-criteria.md', 'referral-form-and-checklist.md')
@@ -146,7 +146,7 @@ def validate_suggestion(obj: Any, page_numbers: set[int]) -> dict:
         page = rule['page']
         if page is not None and (isinstance(page, bool) or not isinstance(page, int) or page not in page_numbers):
             raise ValueError(f'rules[{i}].page is not a page of this packet.')
-        if rule['status'] in ('meets', 'unmet', 'conflict') and (page is None or not str(rule['evidence']).strip()):
+        if rule['status'] in ('meets', 'unmet', 'conflict') and (page is None or not isinstance(rule['evidence'], str) or not rule['evidence'].strip()):
             raise ValueError(f'rules[{i}] claims {rule["status"]} without a cited page and evidence.')
     for key in ('contradictions', 'ask_hospital'):
         value = obj.get(key, [])

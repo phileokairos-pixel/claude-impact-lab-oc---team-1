@@ -83,7 +83,7 @@ The current deployment branch is deliberately `codex/frontend-live`. Merging onl
 
 The local text-review client preserves per-page note drafts, rationale, next-step choice and edited unsent text while navigating pages. Unsaved page notes block confirmation/export. Save failures retain inputs; 409 responses expose a reload action that preserves local drafts and shows the currently saved server note for comparison. Writes are guarded against concurrent clicks, and requests have a 30-second timeout. Leaving this view with unsaved page notes asks before discarding them; refresh still loses session memory.
 
-Export rechecks the server record and matching draft version before downloading. The export records the server draft separately from the user's edited unsent text. This is a checked snapshot, not a server-side immutable audit or an atomic cross-request transaction. Backend idempotency and authoritative clinical field review remain BE-04 work.
+Export rechecks the server record and matching draft version before downloading. The export records the server draft separately from the user's edited unsent text. This is a checked snapshot, not a server-side immutable audit or an atomic cross-request transaction. The merged BE-04 API provides exact-confirmation replay and authoritative field review. The client uses its current draft field contract and includes the server-reviewed export when fields exist.
 
 The current adapter validates the existing text-only response identity, version and original page numbering, and rejects unknown analysis states. It accepts documented analysis states for manual source review without interpreting populated clinical fields as verified facts. It does not guess BE-03's future field schema or use synthetic fallback results. Test `node frontend/tests/backend-recovery-browser.cjs` with the local server running: its API is mocked with synthetic data to exercise failure paths. `node backend/tests/browser.cjs` separately exercises the real service with the public blank form.
 
@@ -100,3 +100,7 @@ The approved interface name is **Careward · Referral coordination**. The green 
 ## Shared referral loop
 
 The synthetic inbox, hospital completeness check, clarification thread and mock CRM handoff share browser-session state across roles. See [the workflow handoff and demo steps](../docs/referral-loop-handoff.md). Source fields now open inline in evidence review. Uploaded PDFs remain a separate local preview/OCR path.
+
+## Real local field-review regression
+
+Start `python3 backend/tests/field_browser_server.py` in one terminal, then run `node frontend/tests/backend-fields-browser.cjs`. This serves the real API on loopback port 8001 with an injected synthetic analysis adapter and invented PDF; it never calls a model. The browser test covers all-field review, source navigation, retained edits on concurrent 409/reload, uncertainty gates, confirmed export and reversal validation. Stop the test server afterward. Production model extraction and clinical accuracy are not validated by this test.
