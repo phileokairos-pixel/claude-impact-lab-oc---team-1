@@ -2,6 +2,14 @@
 
 Audience: the frontend owner and Harjeev (BE-03). Status: **localhost prototype**. The analysis shapes below are a **DRAFT, not an agreed BE-03 contract** (`contractStatus: "unagreed-draft"`). Every JSON example in this file was produced by running this code with a **synthetic fake adapter**; none of it is real extraction, and no model was called.
 
+## Read first: compatibility with the merged frontend (FE-03 action required)
+
+`frontend/backend-client.js` on `codex/frontend-live` (integration lane: @phileokairos-pixel with Codex, per `docs/frontend-lanes.md`) contains a deliberate **fail-closed guard** in `validateTextRecord`: it throws ("This response needs the new extraction adapter") unless `analysis.status === 'not_connected'` and `formFields`/`findings` are empty. This branch does not touch that file.
+
+- **No adapter configured (the default): nothing changes.** The record reports `not_connected`, passes the guard, and the existing UI, tests and browser flow behave exactly as before.
+- **Any adapter configured: the shipped UI will refuse the record**, including when analysis is `unavailable` or `failed` and the API would still allow manual review. Until FE-03 lands, **keep `IHH_ANALYSIS_ADAPTER` unset when using the browser UI.** API clients and the backend tests are unaffected.
+- **Needed from the integration lane (after the BE-03 contract is agreed):** accept `analysis.status` in `unavailable | waiting_for_text | queued | checking | needs_review | failed` as well as `not_connected`; for `unavailable`/`failed`, keep rendering the page review and show `analysis.error`; render populated fields/findings only for `needs_review`, labeled unreviewed (and as a fixture when `synthetic` is true); poll `job.analysis.status` until terminal after `text_ready`. I deliberately did not edit the client or invent a competing UI contract.
+
 ## Basics
 
 | Item | Value |
@@ -15,7 +23,7 @@ Audience: the frontend owner and Harjeev (BE-03). Status: **localhost prototype*
 
 ## Two separate progress signals
 
-`job.state` is **text processing only** and is unchanged: `queued → rendering ⇄ extracting → text_ready | failed`. **`text_ready` does not mean analysis finished.** The existing review UI keeps working from `text_ready` exactly as before.
+`job.state` is **text processing only** and is unchanged: `queued → rendering ⇄ extracting → text_ready | failed`. **`text_ready` does not mean analysis finished.** With no adapter configured (the default) the existing review UI keeps working from `text_ready` exactly as before; with one configured, see the compatibility note above.
 
 `job.analysis.status` is new and independent:
 
@@ -31,7 +39,7 @@ Audience: the frontend owner and Harjeev (BE-03). Status: **localhost prototype*
 
 Mapping to the BE-01 vocabulary: `queued`/`rendering`/`extracting` are `job.state`; `checking`/`needs_review`/`failed` are `job.analysis.status`. This keeps the shipped frontend working; if you prefer one merged field, that is a versioned change to agree explicitly.
 
-**A failed or unavailable analysis never blocks manual review.** Pages, page images, search, page notes and the unsent next-step flow all still work. Poll until `analysis.status` is terminal; show `error` verbatim (it is a static message and never contains document text).
+**At the API level a failed or unavailable analysis never blocks manual review.** Pages, page images, search, page notes and the unsent next-step flow all still work (the merged client's guard currently refuses these records; see above). Poll until `analysis.status` is terminal; show `error` verbatim (it is a static message and never contains document text).
 
 ## Exact examples (synthetic fake adapter)
 

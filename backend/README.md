@@ -50,7 +50,7 @@ No API keys are needed for the default OCR-only service. This is not a public ba
 
 ## Analysis adapter (optional, off by default)
 
-`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available. Approval/denial stay rejected regardless of coverage.
+`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. **Frontend caveat:** the merged `frontend/backend-client.js` deliberately fails closed on any analysis status other than `not_connected`, so keep `IHH_ANALYSIS_ADAPTER` unset when using the browser UI until the integration lane (FE-03) adapts it; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
 
 Configuration is environment-only and server-side; copy `.env.example` and see it for every variable. There is deliberately **no default model ID**:
 
