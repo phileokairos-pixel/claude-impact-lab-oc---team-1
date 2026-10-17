@@ -1,3 +1,15 @@
+# Careward — Team 1
+
+Careward helps IHH intake coordinators review referral evidence, identify unanswered questions, and record a human-confirmed next step.
+
+**Challenge 1: Referral intake.** Built by Aaron Zendejas, Harjeev (@harjeev), Vibhu Arya (@VibhuA-ai), and Neetal (@neetalp).
+
+**[Try the live demo](https://phileokairos-pixel.github.io/claude-impact-lab-oc---team-1/)** · **[Project submission and demo guide](docs/submission.md)** · **[Run PDF processing](docs/demo-runtime.md)**
+
+The public demo uses invented referrals. PDF preview works in-browser; OCR requires the Python service. AI analysis requires separately configured model credentials. Follow-up and shared-record backend modules are implemented and tested, but are not yet connected into a single persistent frontend workflow. No measured time savings or production readiness is claimed.
+
+---
+
 # Orange County | Claude Impact Lab
 
 **Team 1 — Referral Intake:** [Start here: team handoff](docs/team-handoff.md) · [Assigned GitHub tickets](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues) · [Public frontend demo](https://phileokairos-pixel.github.io/claude-impact-lab-oc---team-1/)

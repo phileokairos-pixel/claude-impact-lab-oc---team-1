@@ -16,7 +16,7 @@ const assert=require('node:assert/strict');
   else body=record;
   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
  });
- await page.goto('http://127.0.0.1:8000/');await page.locator('#file-input').setInputFiles({name:'synthetic.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF- synthetic test only')});await page.locator('#extract-local').click();await page.locator('#local-note').waitFor();
+ await page.goto('http://127.0.0.1:8000/');await page.click('#nav-intake');await page.locator('#file-input').setInputFiles({name:'synthetic.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF- synthetic test only')});await page.locator('#extract-local').click();await page.locator('#local-note').waitFor();
  await page.locator('#local-reviewer').fill('QA');await page.locator('#local-note').fill('My unsaved synthetic page one note.');await page.locator('#local-rationale').fill('A synthetic clarification rationale to preserve.');
  page.once('dialog',d=>d.dismiss());await page.locator('#nav-guide').click();await page.locator('#local-note').waitFor();assert.match(await page.locator('#local-rationale').inputValue(),/preserve/);await page.locator('#local-page').selectOption('2');await page.locator('#local-page').selectOption('1');assert.match(await page.locator('#local-note').inputValue(),/My unsaved/);assert.match(await page.locator('#local-rationale').inputValue(),/preserve/);
  await page.locator('#local-review button').click();await page.getByText('Temporary test failure').waitFor();assert.match(await page.locator('#local-note').inputValue(),/My unsaved/);

@@ -49,3 +49,13 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+## Implementation update (branch `be-06-timing`, stacked on BE-04)
+
+- `backend/timing.py` + endpoints `GET/POST /api/referrals/{id}/timing` and `GET /api/timing/summary`. Events (received, text_ready/text_failed, analysis_terminal, page_note, field_review, confirmation, export_viewed, pause/resume, wait_start/wait_end) carry only labels and booleans, no document or reviewer text. Clock is injectable.
+- Definitions: **elapsed** = received to the current confirmation; **active** = first review to current confirmation minus the union of explicit pauses and waits (a timestamp estimate, not attention); unknown intervals, open pauses, out-of-order events, or no confirmation give `null`, never 0. Clarification and clinical review are **intermediate**; no completed admission disposition exists. An edit after confirmation returns the packet to `unfinished`.
+- The summary counts failed and unfinished packets, reports statistics only over known values with the unknown count and n, and returns `savingsPercent: null`. The 120-minute baseline is marked unmeasured.
+- `backend/tests/test_timing.py` (13 tests) includes the end-to-end walkthrough (page citations checked against the cited page's text, idempotent repeat, stale invalidation, failed analysis with manual review, invalid upload, restart).
+- `docs/demo-script.md`: clean-checkout start, what is real vs mocked.
+
+**Not done:** no rehearsal with a new permitted packet, no manual-vs-assisted comparison, no sample, no UI for pause/resume (frontend work), nothing durable across restarts. No time saving can be claimed.

@@ -194,3 +194,13 @@ class ScoreTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class EvidenceTypeTests(unittest.TestCase):
+    def test_conclusions_reject_null_and_non_text_evidence(self):
+        for status in ('meets', 'unmet', 'conflict'):
+            for evidence in (None, False, 1, [], {}, '', '   '):
+                with self.subTest(status=status, evidence=evidence):
+                    obj = json.loads(good(status=status))
+                    obj['rules'][0]['evidence'] = evidence
+                    with self.assertRaises(ValueError):
+                        ev.validate_suggestion(obj, {1})

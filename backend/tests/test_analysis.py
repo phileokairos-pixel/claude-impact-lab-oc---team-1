@@ -506,11 +506,14 @@ class AnalysisApiTests(unittest.TestCase):
         gate.set()
         self.wait(client, packet_id, {'needs_review'})
         self.assertEqual(client.get(base).json()['version'], 3)
-        self.assertEqual(client.post(base + '/outcome', json=outcome).status_code, 409)
-        outcome['version'] = 3
+        gated = client.post(base + '/outcome', json={**outcome, 'version': 3})   # BE-04: analysis fields must be human-reviewed first
+        self.assertEqual((gated.status_code, 'Review every extracted field' in gated.json()['detail']), (409, True))
+        field = {'version': 3, 'value': 'synthetic value', 'assessment': 'verified', 'reviewer': 'QA'}
+        self.assertEqual(client.patch(base + '/fields/f_a', json=field).status_code, 200)
+        outcome['version'] = 4
         self.assertEqual(client.post(base + '/outcome', json=outcome).status_code, 200)
         self.assertEqual(client.get(base + '/draft').status_code, 200)
-        review['version'] = 4
+        review['version'] = 5
         self.assertEqual(client.patch(base + '/review', json=review).status_code, 200)
         self.assertEqual(client.get(base + '/draft').status_code, 409)     # edit invalidates the confirmation
 

@@ -8,6 +8,8 @@ All document data is ephemeral, outside the checkout, and removed at shutdown.
 """
 from __future__ import annotations
 
+from backend.demo_hosting import DemoHosting, TRAINING_HASHES
+
 import copy
 import hashlib
 import re
@@ -26,6 +28,12 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.access import provider_from_env
+from backend.shared import build_router as build_shared_router, service_from_env
+from backend.timing import TimingInput, compute as compute_timing, open_intervals, summarize
+from backend.review import (
+    FieldReviewInput, apply_field_review, build_export, draft_sections, now_iso, with_actions,
+)
 from backend.analysis import (
     CONTRACT_STATUS, AnalysisError, AnalysisRequest, AnalysisRuntime, AnalysisUnavailable, PageInput,
     execute_analysis,
@@ -72,9 +80,38 @@ def default_ocr(image: Path) -> str:
     return result.stdout.strip()
 
 
+def appears_blank(pix) -> bool:
+    """Heuristic only: almost every sampled pixel is near-white. A faint scan or light handwriting can
+    still look blank, so this is a flag for a human, never proof that a page has no content."""
+    samples = pix.samples[::97]
+    if not samples:
+        return False
+    dark = sum(1 for b in samples if b < 200)
+    return dark / len(samples) < 0.0005
+
+
+def quality_flags(method: str, text: str, blank: bool) -> list[str]:
+    """Per-page extraction flags. None of them says the text is correct; all text stays unverified."""
+    flags = ['native_text' if method == 'pdf-text' else 'ocr_used']
+    if not text:
+        flags.append('no_text_detected')
+    elif len(text) < 30:
+        flags.append('short_text')
+    if blank:
+        flags.append('appears_blank')
+    return flags
+
+
+def record_field_corrected(record, field_id):
+    field = next((f for f in record['formFields'] if f['id'] == field_id), None)
+    return bool(field and field['review'].get('correctedValue') is not None)
+
+
 class PacketService:
-    def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None):
+    def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None):
         self.root = data_dir
+        self.clock = clock or now_iso
+        self.timelines: dict[str, list[dict]] = {}   # BE-06: event log, no clinical content
         self.ocr = ocr
         self.analysis = analysis or AnalysisRuntime()
         self.lock = threading.RLock()
@@ -84,6 +121,12 @@ class PacketService:
         # Model latency must not hold the OCR queue; a separate single worker runs analysis.
         self.analysis_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='analysis')
         self.active_slots = threading.BoundedSemaphore(MAX_ACTIVE_JOBS)
+
+    def mark(self, packet_id, kind, **extra):
+        """Append a timing event. Extras are labels/booleans only, never document or reviewer text."""
+        with self.lock:
+            version = self.records[packet_id]['version'] if packet_id in self.records else None
+            self.timelines.setdefault(packet_id, []).append({'at': self.clock(), 'kind': kind, 'version': version, **extra})
 
     def close(self):
         self.stopping.set()
@@ -99,6 +142,10 @@ class PacketService:
     def run_analysis(self, packet_id):
         try:
             self._run_analysis(packet_id)
+            with self.lock:
+                record = self.records.get(packet_id)
+                if record and not self.stopping.is_set() and record['analysis']['status'] in ('needs_review', 'failed', 'unavailable'):
+                    self.mark(packet_id, 'analysis_terminal', status=record['analysis']['status'])
         except Exception:
             # Never leave 'queued'/'checking' behind: it would block confirming the next step forever.
             with self.lock:
@@ -167,6 +214,7 @@ class PacketService:
                     if self.stopping.is_set():
                         with self.lock:
                             self.records[packet_id]['job']['state'] = 'failed'
+                            self.mark(packet_id, 'text_failed')
                             self.skip_analysis(self.records[packet_id], 'text_not_ready',
                                                'Analysis did not run because text processing stopped.')
                         return
@@ -181,33 +229,54 @@ class PacketService:
                         scale = min(2000 / max(page.rect.width, page.rect.height), 3)
                         pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
                         pix.save(image_path)
+                        blank = appears_blank(pix)
                         with self.lock:
                             record['pages'][index]['imageUrl'] = f'/api/referrals/{packet_id}/pages/{index+1}/image'
+                            record['pages'][index]['rotation'] = page.rotation
+                            record['pages'][index]['appearsBlank'] = blank
                         text = page.get_text('text').strip()
                         method = 'pdf-text'
+                        fallback_flags = []
                         if len(text) < 30:
                             with self.lock:
                                 record['job']['state'] = 'extracting'
-                            text = self.ocr(image_path)
-                            method = 'ocr'
+                            native_text = text
+                            try:
+                                ocr_text = self.ocr(image_path)
+                            except Exception:
+                                if not native_text:
+                                    raise
+                                # Preserve readable PDF text when optional OCR fails; never log OCR errors.
+                                fallback_flags = ['ocr_failed', 'native_text_fallback']
+                            else:
+                                if ocr_text:
+                                    text, method = ocr_text, 'ocr'
+                                elif native_text:
+                                    fallback_flags = ['ocr_no_text', 'native_text_fallback']
+                                else:
+                                    text, method = '', 'ocr'
                         with self.lock:
                             record['pages'][index].update(
                                 state='ready' if text else 'no_text_detected',
                                 text=text[:100000], truncated=len(text)>100000, extractionMethod=method,
                                 quality='unverified' if text else 'no_text_detected',
+                                qualityFlags=quality_flags(method, text, blank) + fallback_flags,
                             )
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         with self.lock:
-                            record['pages'][index].update(state='failed', error='OCR unavailable or timed out. Review the source image.')
+                            record['pages'][index].update(state='failed', qualityFlags=['extraction_failed'],
+                                                          error='OCR unavailable or timed out. Review the source image.')
                     except Exception:
                         # Never expose subprocess stderr or patient text in errors/logs.
                         with self.lock:
-                            record['pages'][index].update(state='failed', error='This page could not be extracted. Review the original PDF.')
+                            record['pages'][index].update(state='failed', qualityFlags=['extraction_failed'],
+                                                          error='This page could not be extracted. Review the original PDF.')
                     with self.lock:
                         record['job']['completedPages'] = index + 1
                 queue_analysis = False
                 with self.lock:
                     record['job']['state'] = 'text_ready'
+                    self.mark(packet_id, 'text_ready')
                     record['job']['partial'] = any(p['state'] != 'ready' for p in record['pages'])
                     # text_ready is OCR completion only. Analysis is queued atomically with it so a
                     # reader never sees text_ready next to a stale "waiting" analysis state.
@@ -223,6 +292,7 @@ class PacketService:
         except Exception:
             with self.lock:
                 self.records[packet_id]['job'].update(state='failed', error='PDF processing failed. No analysis or decision was generated.')
+                self.mark(packet_id, 'text_failed')
                 self.skip_analysis(self.records[packet_id], 'text_not_ready',
                                    'Analysis did not run because text processing failed.')
         finally:
@@ -243,7 +313,8 @@ class PacketService:
             'job': {'jobId': packet_id, 'state': 'queued', 'currentPage': None,
                     'completedPages': 0, 'totalPages': page_count, 'partial': False},
             'pages': [{'page': n, 'state': 'pending', 'text': '', 'imageUrl': None,
-                       'quality': 'unverified', 'extractionMethod': None} for n in range(1, page_count + 1)],
+                       'quality': 'unverified', 'extractionMethod': None, 'rotation': None, 'appearsBlank': None,
+                       'qualityFlags': []} for n in range(1, page_count + 1)],
             'analysis': self.initial_analysis(),
             'formFields': [], 'findings': [],
             'criteriaCoverage': {'evaluated': 0, 'complete': False},
@@ -251,34 +322,45 @@ class PacketService:
         }
         with self.lock:
             self.records[packet_id] = record
+            self.mark(packet_id, 'received')
         self.pool.submit(self.process, packet_id)
         return record
 
 
-def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
+def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None, auth=None, shared=None):
+    hosting = DemoHosting.from_env()
     runtime = analysis or AnalysisRuntime()   # reads configuration only; builds no client, reads no files
 
     @asynccontextmanager
     async def lifespan(app):
         folder = Path(tempfile.mkdtemp(prefix='ihh-local-packets-'))
         folder.chmod(0o700)
-        app.state.service = PacketService(folder, ocr, runtime)
+        app.state.service = PacketService(folder, ocr, runtime, clock)
         try:
             yield
         finally:
             app.state.service.close()
+            if shared_holder['service'] is not None and shared is None:
+                shared_holder['service'].close()
             shutil.rmtree(folder, ignore_errors=True)
 
     app = FastAPI(title='IHH local text-review prototype', lifespan=lifespan)
+    # LOOP-06: authenticated shared records, a separate module. Off unless an auth mode is ready AND a store is configured.
+    auth_provider = auth or provider_from_env()
+    shared_holder = {'service': shared if shared is not None else service_from_env(provider=auth_provider)}
+    app.include_router(build_shared_router(lambda: shared_holder['service'], auth_provider))
+    app.state.shared_holder = shared_holder
 
     @app.middleware('http')
     async def local_guards(request: Request, call_next):
         # No CORS grants, cross-site browser writes, or untrusted Host/DNS rebinding.
-        if request.url.hostname not in ('127.0.0.1', 'localhost', '::1', 'testserver'):
+        if (hosting.enabled and request.url.hostname != hosting.hostname) or (not hosting.enabled and request.url.hostname not in ('127.0.0.1', 'localhost', '::1', 'testserver')):
             return JSONResponse({'detail': 'This prototype is localhost-only.'}, status_code=403)
+        if hosting.enabled and request.url.path != '/ready' and not hosting.authorized(request.headers.get('authorization')):
+            return JSONResponse({'detail': 'Sign in to the synthetic demo.'}, status_code=401, headers={'WWW-Authenticate': 'Basic realm="Careward synthetic demo"', 'Cache-Control': 'no-store'})
         if request.method in ('POST', 'PATCH', 'DELETE'):
             origin = request.headers.get('origin')
-            expected = f'{request.url.scheme}://{request.url.netloc}'
+            expected = f'https://{hosting.hostname}' if hosting.enabled else f'{request.url.scheme}://{request.url.netloc}'
             if (origin and origin != expected) or request.headers.get('sec-fetch-site') == 'cross-site':
                 return JSONResponse({'detail': 'Cross-site upload/review is not permitted.'}, status_code=403)
             length = request.headers.get('content-length')
@@ -289,6 +371,10 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response
+
+    @app.get('/ready')
+    def ready():
+        return {'status': 'ok'}
 
     @app.get('/health')
     def health():
@@ -303,6 +389,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         if ready.status != 'ready':
             analysis_info.update(errorCode=ready.code, reason=ready.message)
         return {'status': 'ok', 'service': 'ihh-local-intake',
+                'deploymentMode': 'protected-demo' if hosting.enabled else 'localhost',
                 'capabilities': {'pdfText': True, 'ocr': shutil.which('tesseract') is not None,
                                  'clinicalAnalysis': ready.status == 'ready', 'sending': False},
                 'analysis': analysis_info,
@@ -334,6 +421,8 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
                         raise HTTPException(413, 'Upload exceeds 25 MB.')
                     target.write(chunk)
                     digest.update(chunk)
+            if hosting.enabled and digest.hexdigest() not in TRAINING_HASHES:
+                raise HTTPException(422, 'Hosted demo accepts only the two downloadable Careward synthetic training PDFs. No patient packets are accepted.')
             with path.open('rb') as header:
                 signature = header.read(5)
             if not size or signature != b'%PDF-':
@@ -371,7 +460,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
 
     @app.get('/api/referrals/{packet_id}')
     def referral(packet_id: str, request: Request):
-        return request.app.state.service.get(packet_id)
+        return with_actions(request.app.state.service.get(packet_id))
 
     @app.get('/api/referrals/{packet_id}/search')
     def search(packet_id: str, request: Request, q: str = Query(min_length=2, max_length=120)):
@@ -403,17 +492,27 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
                 raise HTTPException(409, 'Wait for document processing to finish.')
             if not 1 <= body.page <= len(record['pages']):
                 raise HTTPException(422, 'Page does not exist in this document.')
+            had_outcome = record['outcome'] is not None
             record['reviews'][str(body.page)] = body.model_dump(exclude={'version'})
             record['version'] += 1
             record['outcome'] = None
             service.records[packet_id] = record
-            return record
+            service.mark(packet_id, 'page_note', invalidatedConfirmation=had_outcome)
+            return with_actions(record)
 
     @app.post('/api/referrals/{packet_id}/outcome')
     def outcome(packet_id: str, body: OutcomeInput, request: Request):
         service = request.app.state.service
         with service.lock:
             record = service.get(packet_id)
+            current = record['outcome']
+            # Exact replay of the request that produced the CURRENT confirmation is idempotent. Anything
+            # else at an old version (different content, or any edit since) is stale and rejected.
+            if current and body.version == current.get('confirmedFromVersion') \
+                    and record['version'] == current.get('confirmedAtVersion') \
+                    and (body.decision, body.reviewer, body.rationale, body.attested) == (
+                        current['decision'], current['reviewer'], current['rationale'], current['attested']):
+                return {**with_actions(record), 'idempotentReplay': True}
             if body.version != record['version']:
                 raise HTTPException(409, 'Review changed. Reload before confirming.')
             if body.decision in ('approve', 'deny'):
@@ -422,10 +521,60 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
                 raise HTTPException(409, 'Review a source page and attest before recording the next step.')
             if record['analysis']['status'] in ('queued', 'checking'):
                 raise HTTPException(409, 'Analysis is still running. Wait for it to finish before recording the next step.')
-            record['outcome'] = body.model_dump(exclude={'version'})
+            if any(not f['review'].get('reviewed') for f in record['formFields']):
+                raise HTTPException(409, 'Review every extracted field before recording the next step.')
+            record['outcome'] = {**body.model_dump(exclude={'version'}), 'confirmedFromVersion': body.version,
+                                 'confirmedAtVersion': body.version + 1, 'confirmedAt': service.clock()}
             record['version'] += 1
             service.records[packet_id] = record
-            return record
+            service.mark(packet_id, 'confirmation', decision=body.decision)
+            return with_actions(record)
+
+    @app.patch('/api/referrals/{packet_id}/fields/{field_id}')
+    def field_review(packet_id: str, field_id: str, body: FieldReviewInput, request: Request):
+        service = request.app.state.service
+        with service.lock:
+            record = service.get(packet_id)       # private copy: a rejected edit changes nothing
+            change = apply_field_review(record, field_id, body, now=service.clock)
+            service.records[packet_id] = record
+            service.mark(packet_id, 'field_review', corrected=record_field_corrected(record, field_id),
+                         invalidatedConfirmation=change['invalidatedConfirmation'])
+            return {**with_actions(record), 'change': change}
+
+    @app.get('/api/referrals/{packet_id}/export')
+    def export(packet_id: str, request: Request):
+        service = request.app.state.service
+        record = service.get(packet_id)
+        if not record['outcome']:
+            raise HTTPException(409, 'No current confirmed next step. Review and confirm first.')
+        service.mark(packet_id, 'export_viewed')
+        return build_export(record)
+
+    @app.get('/api/referrals/{packet_id}/timing')
+    def timing(packet_id: str, request: Request):
+        service = request.app.state.service
+        service.get(packet_id)                       # 404 for unknown IDs
+        with service.lock:
+            return compute_timing(list(service.timelines.get(packet_id, [])), service.clock())
+
+    @app.post('/api/referrals/{packet_id}/timing')
+    def timing_event(packet_id: str, body: TimingInput, request: Request):
+        service = request.app.state.service
+        with service.lock:
+            service.get(packet_id)
+            open_now = open_intervals(service.timelines.get(packet_id, []))
+            name = 'pause' if body.event in ('pause', 'resume') else 'wait'
+            starting = body.event in ('pause', 'wait_start')
+            if starting == open_now[name]:
+                raise HTTPException(409, f'A {name} interval is already {"open" if starting else "closed"}.')
+            service.mark(packet_id, body.event, **({'reason': body.reason} if body.reason else {}))
+            return compute_timing(list(service.timelines[packet_id]), service.clock())
+
+    @app.get('/api/timing/summary')
+    def timing_summary(request: Request):
+        service = request.app.state.service
+        with service.lock:
+            return summarize({pid: list(ev) for pid, ev in service.timelines.items()}, service.clock())
 
     @app.get('/api/referrals/{packet_id}/draft')
     def draft(packet_id: str, request: Request):
@@ -434,7 +583,9 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
             raise HTTPException(409, 'No current confirmed next step. Review and confirm first.')
         out = record['outcome']
         return {'version': record['version'], 'sent': False,
-                'text': f"UNSENT LOCAL DRAFT\nNext step: {out['decision']}\nReviewer: {out['reviewer']}\n\n{out['rationale']}\n\nClinical eligibility and authorization have not been established."}
+                'text': f"UNSENT LOCAL DRAFT\nNext step: {out['decision']}\nReviewer: {out['reviewer']}\n\n{out['rationale']}"
+                        + ''.join('\n' + line for line in draft_sections(record))
+                        + "\n\nClinical eligibility and authorization have not been established."}
 
     @app.get('/')
     def index():
@@ -442,8 +593,11 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
 
     allowed_assets = {name: ROOT / 'frontend' / name for name in (
         'assets/source-sans-3-latin.woff2', 'assets/source-sans-3-LICENSE.txt',
-        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'field-review-model.js', 'field-review.js',
+        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'referral-flow.js','referral-flow-model.js','onboarding.js','pdf-preview.js','field-review-model.js', 'field-review.js',
         'team/index.html', 'team/board.js', 'team/tasks.json')}
+    allowed_assets.update({f'vendor/{name}': ROOT / 'frontend/node_modules/pdfjs-dist/build' / name for name in ('pdf.mjs', 'pdf.worker.mjs')})
+    allowed_assets['vendor/pdfjs-LICENSE'] = ROOT / 'frontend/node_modules/pdfjs-dist/LICENSE'
+    allowed_assets.update({name: ROOT / 'frontend' / 'fixtures' / 'synthetic-training' / name.split('/')[-1] for name in ('downloads/Careward-Synthetic-Referral-Packet.pdf', 'downloads/Careward-Synthetic-Referral-Packet-Scanned.pdf')})
     allowed_assets.update({
         'challenges/1-referral-intake/criteria/admission-criteria.md': ROOT / 'challenges/1-referral-intake/criteria/admission-criteria.md',
         'docs/frontend-research-and-handoff.md': ROOT / 'docs/frontend-research-and-handoff.md',

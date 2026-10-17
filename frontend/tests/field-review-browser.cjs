@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(process.env.FRONTEND_URL||'http://127.0.0.1:4176/');
+ await page.goto(process.env.FRONTEND_URL||'http://127.0.0.1:4176/');await page.click('#nav-intake');
  await page.locator('#demo').click();await page.locator('#fields-view').click();
  await page.locator('#field-reviewer').fill('QA');
  await page.locator('#next-field').click();assert.equal(await page.locator('#field-0').evaluate(el=>el===document.activeElement),true);

@@ -1,6 +1,8 @@
+> For the current one-process launcher and protected Render demo, see [demo-runtime.md](../docs/demo-runtime.md). Run `npm --prefix frontend ci` for the canvas PDF preview dependency. Default processing is OCR-only; optional model-backed extraction exists but is not configured automatically.
+
 # Local packet-processing backend
 
-This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. By default it does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations. An **optional analysis adapter boundary** (see below) lets the BE-03 extraction module plug in; nothing is connected until it is explicitly configured, and no real extractor exists in this repository yet.
+This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. By default it does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations. An **optional analysis adapter boundary** (see below) lets the BE-03 extraction module plug in; nothing is connected until it is explicitly configured, and the model-backed extractor requires explicit configuration and validation.
 
 ## Start
 
@@ -44,13 +46,19 @@ No API keys are needed for the default OCR-only service. This is not a public ba
 | GET `/api/referrals/{id}/pages/{n}/image` | Rendered original page |
 | PATCH `/api/referrals/{id}/review` | `{version, page, reviewer, note}` → revised record; invalidates prior outcome |
 | POST `/api/referrals/{id}/outcome` | `{version, decision, reviewer, rationale, attested}` → guarded next step |
+| PATCH `/api/referrals/{id}/fields/{fieldId}` | BE-04: `{version, value, assessment, reviewer, note, page}` → field review; keeps the original, invalidates dependent findings/outcome |
+| GET `/api/referrals/{id}/export` | BE-04: reviewed snapshot (confirmed vs unresolved); 409 without a current confirmation |
+| GET/POST `/api/referrals/{id}/timing` | BE-06: derived durations (null when unknown) / `{event: pause\|resume\|wait_start\|wait_end, reason?}` |
+| GET `/api/timing/summary` | BE-06: counts incl. failed/unfinished; no savings claim |
 | GET `/api/referrals/{id}/draft` | Unsent draft only for the current confirmed version |
 
 `text_ready` means text processing finished, **not** clinical analysis completed. `partial: true` indicates a page needs manual attention. An approval/denial attempt is always rejected in this version; no client-side override can enable it.
 
+Field review, allowed-action reasons and the export are described in `docs/backend-review-contract.md` (synthetic examples; reviewer labels only, in-memory history, no auth).
+
 ## Analysis adapter (optional, off by default)
 
-`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. The browser retains manual source review for all documented analysis states, polls pending analysis, and blocks confirmation until it finishes. Clinical field review remains unconnected to the draft contract. Successful analysis advances the record version, rejecting confirmations based on older data; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
+`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. The browser retains manual source review for all documented analysis states, polls pending analysis, and blocks confirmation until it finishes. The browser renders the current draft fields, saves versioned human reviews and honors confirmation blockers. Unknown field shapes block confirmation without synthetic substitution. Successful analysis advances the record version, rejecting confirmations based on older data; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
 
 Configuration is environment-only and server-side; copy `.env.example` and see it for every variable. There is deliberately **no default model ID**:
 
@@ -94,3 +102,9 @@ See `docs/adoption-and-demo-strategy.md` for the staged adoption plan. Keep exis
 ## Offline evaluation (BE-05)
 
 `python3 -m backend.evaluation suggest|score`. Separate steps; `score` needs no key or network. See `docs/backend-tickets/BE-05-evaluation.md`. Packet text, runs and suggestions are derived clinical content: keep them under git-ignored paths such as `runtime/`.
+
+Short readable native PDF text is retained if optional OCR fails or returns no text. The page retains original numbering and reports `native_text_fallback` plus `ocr_failed` or `ocr_no_text`; all extracted text remains unverified.
+
+## Shared records (LOOP-06)
+
+Authenticated, institution-scoped records under `/api/shared`, off by default. Design, permissions, rehearsal steps and IHH decisions needed: `docs/shared-records-readiness.md`. Dev sessions are not production authentication.

@@ -83,7 +83,7 @@ The current deployment branch is deliberately `codex/frontend-live`. Merging onl
 
 The local text-review client preserves per-page note drafts, rationale, next-step choice and edited unsent text while navigating pages. Unsaved page notes block confirmation/export. Save failures retain inputs; 409 responses expose a reload action that preserves local drafts and shows the currently saved server note for comparison. Writes are guarded against concurrent clicks, and requests have a 30-second timeout. Leaving this view with unsaved page notes asks before discarding them; refresh still loses session memory.
 
-Export rechecks the server record and matching draft version before downloading. The export records the server draft separately from the user's edited unsent text. This is a checked snapshot, not a server-side immutable audit or an atomic cross-request transaction. Backend idempotency and authoritative clinical field review remain BE-04 work.
+Export rechecks the server record and matching draft version before downloading. The export records the server draft separately from the user's edited unsent text. This is a checked snapshot, not a server-side immutable audit or an atomic cross-request transaction. The merged BE-04 API provides exact-confirmation replay and authoritative field review. The client uses its current draft field contract and includes the server-reviewed export when fields exist.
 
 The current adapter validates the existing text-only response identity, version and original page numbering, and rejects unknown analysis states. It accepts documented analysis states for manual source review without interpreting populated clinical fields as verified facts. It does not guess BE-03's future field schema or use synthetic fallback results. Test `node frontend/tests/backend-recovery-browser.cjs` with the local server running: its API is mocked with synthetic data to exercise failure paths. `node backend/tests/browser.cjs` separately exercises the real service with the public blank form.
 
@@ -96,3 +96,38 @@ The demo role selector separates the person receiving care, hospital referral st
 ## Careward design
 
 The approved interface name is **Careward · Referral coordination**. The green palette is retained with self-hosted Source Sans 3, larger readable type, restrained panels and visible mobile navigation. See [design conventions and presentation handoff](../docs/careward-design.md). Font license ships with the static assets.
+
+## Shared referral loop
+
+The synthetic inbox, hospital completeness check, clarification thread and mock CRM handoff share browser-session state across roles. See [the workflow handoff and demo steps](../docs/referral-loop-handoff.md). Source fields now open inline in evidence review. Uploaded PDFs remain a separate local preview/OCR path.
+
+## Real local field-review regression
+
+Start `python3 backend/tests/field_browser_server.py` in one terminal, then run `node frontend/tests/backend-fields-browser.cjs`. This serves the real API on loopback port 8001 with an injected synthetic analysis adapter and invented PDF; it never calls a model. The browser test covers all-field review, source navigation, retained edits on concurrent 409/reload, uncertainty gates, confirmed export and reversal validation. Stop the test server afterward. Production model extraction and clinical accuracy are not validated by this test.
+
+The internal team board is excluded from the public build and navigation. Its source remains in the repository for reference; GitHub Issues/Projects is the current team tracker.
+
+### Walkthrough and demo onboarding continuity
+
+“Take a tour” opens a keyboard-accessible walkthrough for the selected role without
+leaving the current review. In an inbox referral, “Continue onboarding” retains
+proposed coordination tasks after an explicit **Save demo progress on this device**.
+The client preview shows the saved checklist for the last selected demo referral.
+
+Only fixed demo IDs, enumerated checklist states, a save timestamp, and clarification
+categories/statuses are stored in localStorage. Replies, source fields, decisions,
+PDFs and real API referral IDs are excluded. Saved clarification categories are a
+historical snapshot, not restored clinical evidence; the queue remains session-only.
+Clear saved progress removes that referral's snapshot. Storage failures display an
+error rather than claiming a save. This is not a shared or production client record.
+
+Check with `node frontend/tests/onboarding-browser.cjs` (static build on port 4176).
+
+The handoff now includes controlled demo responsible-team/next-action choices and
+an optional planning date. A reusable presentation boundary supports saving,
+retry and stale-record states for the forthcoming API integration. See
+[onboarding component contract](../docs/onboarding-component.md). No reminders
+are sent and the new controls do not make the record a shared clinical record.
+
+
+PDF preview now uses pinned, self-hosted PDF.js to render pages onto a canvas, avoiding Chrome’s blocked embedded-PDF plugin. Run `npm --prefix frontend ci` before building or serving the local API. Page navigation, zoom and a plain-text view are provided; this does not itself perform OCR or clinical analysis. See docs/demo-runtime.md for the protected, synthetic-only Render deployment.

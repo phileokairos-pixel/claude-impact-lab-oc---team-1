@@ -56,3 +56,13 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+## Implementation update (branch `be-02-page-quality`)
+
+Added to each page in the manifest (additive; existing keys unchanged, so the merged client is unaffected):
+- `rotation`: the PDF's own page rotation in degrees (0/90/180/270). The rendered image is always upright (rotation applied); `rotation` tells the viewer how the source was stored. **No automatic deskew or orientation detection is done**, so a scan that was photographed sideways but stored as rotation 0 stays sideways, and that is not flagged.
+- `appearsBlank`: heuristic from sampled pixels. A faint scan or light handwriting can look blank, so it is a prompt to look, never proof.
+- `qualityFlags`: any of `native_text`, `ocr_used`, `short_text` (under 30 characters), `no_text_detected`, `appears_blank`, `extraction_failed`. None of them says the text is correct; `quality` stays `unverified`.
+- Regression tests (`backend/tests/test_pages.py`): a packet with PAGE 1 and PAGE 3 text and an empty page 2 never produces a PAGE 2 marker, search finds PAGE 3 only on page 3, failed pages keep their index with an error, rotation and upright image orientation are distinguishable, and errors never echo OCR text.
+
+Still open: redacted black boxes are **not** detected (OCR cannot tell a black box from damage; use "removed for privacy" only when a human sees it), handwriting/checkbox/skew quality scoring, OCR confidence, and bounding boxes (citations remain whole-page, which the ticket allows for a first release).

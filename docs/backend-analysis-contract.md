@@ -6,7 +6,7 @@ Audience: the frontend owner and Harjeev (BE-03). Status: **localhost prototype*
 
 The source-page workspace accepts all documented analysis states. Staff can review pages and save notes while analysis runs; confirmation waits until analysis is terminal. Unavailable or failed analysis displays its reason and retains manual clarification/escalation. The client polls pending analysis and preserves local notes and rationale when results arrive, while clearing the old attestation and draft.
 
-Populated fields/findings remain **unreviewed and are not rendered as verified fields**: the clinical field adapter still needs an agreed BE-03 contract. The workspace explicitly identifies this limitation and synthetic adapter output. No synthetic clinical data replaces a real packet.
+The browser now renders the current draft field contract with source citations and alternatives, versioned review/correction controls and `allowedActions` confirmation reasons. Missing/conflicting/redacted/unreadable fields remain unresolved; redacted values stay unknown. Malformed field shapes block confirmation. Findings remain unreviewed machine output; field review does not establish eligibility. Export includes the current server-reviewed snapshot, with confirmed fields separate from unresolved items. Synthetic adapters are labeled explicitly. The contract still requires domain/model validation.
 
 ## Basics
 

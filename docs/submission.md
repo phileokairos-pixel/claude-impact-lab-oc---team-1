@@ -1,41 +1,39 @@
-# Submitting
+# Careward — Challenge 1 submission
 
-**One submission per team. Due 4:00 PM.** You can submit early and keep pushing; judges look at
-what is in your repo at 4:00.
+## Who it helps
+IHH intake coordinators reviewing hospital referral packets, with separate demo perspectives for hospital referral staff and the person receiving care.
 
-## What to submit
+## What we built
+Careward organizes referral evidence, conflicting information, clarification requests, human review and onboarding next steps in one prototype. It makes unknowns visible instead of treating missing or redacted information as normal. The intended benefit is less searching and repeated review; time savings have not yet been measured.
 
-1. **A public GitHub repo** with your code and a README that follows
-   [`templates/TEAM-README.md`](../templates/TEAM-README.md).
-2. **A two-minute screen recording** of the thing working. Optional, and it makes judging much
-   easier. A phone video of your screen is fine. Put the link in your README.
-3. **The submission form**, on the event hub. Submit again with the same team name and contact email to update it:
+## Demonstrate in three minutes
+1. Open the live demo and choose DEMO-001 in Referral inbox. Explain open questions and the staff coordination checklist.
+2. Open linked synthetic evidence review. Show the conflicting transfer evidence and original source pages. Review findings; preserve unknowns.
+3. Record a clarification or clinical-review next step with reviewer confirmation. Continue to referral and onboarding; set the responsible team and next action.
+4. Switch to Hospital referral staff to answer an open request. Return to IHH and show that new information requires fresh review.
+5. Use Review packet to download and upload an invented six-page training PDF. The public site previews it. Demonstrate actual OCR only on the configured Python service; never claim the public site analyzed it.
 
-   **<https://claudesocal.com/oc-impact-lab#submit>**
+## Real versus simulated
+| Component | Status |
+|---|---|
+| Browser PDF preview and navigation | Working, including scanned training packet |
+| PDF text extraction, OCR and page quality | Working Python service; not hosted by GitHub Pages |
+| AI extraction adapter | Implemented; model credentials and validation required |
+| Public referral inbox, role perspectives and questions | Synthetic session demo; role picker is not authentication |
+| Human review, unknown/conflict handling, draft export | Working prototype; synthetic findings on public demo |
+| Onboarding retention | Limited synthetic checklist metadata on this browser |
+| Backend follow-up and authenticated shared records | Implemented modules and tests; not integrated with the public frontend workflow |
+| Email, fax, CRM delivery and clinical eligibility approval | Not connected; no real messages or automatic admission |
+| Render hosting | Configuration prepared; account deployment still required |
 
-## New to GitHub?
+## How Claude is used
+The team used Claude-assisted research, implementation and browser review during development. The optional runtime extraction adapter accepts configured Claude model output as an unreviewed draft, validates its shape and preserves source references for human review. The public synthetic walkthrough does not call a model.
 
-- One teammate with a free GitHub account is enough.
-- No code in your project? A repo with just the README and your files is fine. On GitHub, choose
-  **Add file**, then **Upload files**.
-- Stuck? Find an organizer well before 4:00.
+## Run it
+See [runtime instructions](demo-runtime.md) for Python, Tesseract, npm installation and model configuration. For static-only preview: `npm --prefix frontend ci`, `npm --prefix frontend run build`, then `python3 -m http.server 4176 --directory frontend/dist`.
 
-## Before you submit
+## Known limits and next steps
+Finish persistence and follow-up API/frontend integration; deploy the protected synthetic service; validate extraction and critical-field errors with IHH before measuring review time. Resolve remaining keyboard role-selection and responsive acceptance findings. Production use requires an approved identity provider, security review, retention decisions and validated clinical policy. The prototype does not connect to any IHH system.
 
-- [ ] The repo is public and has a license file. MIT is the default.
-- [ ] The README says who it is for, what it does, how to run it, and what is real versus mocked.
-- [ ] There is no real patient or client information anywhere in the repo or its history, and no copy of the Challenge 1 packets.
-- [ ] There are no API keys or passwords in the repo or its history.
-- [ ] Someone who is not on your team could follow the README and run it.
-
-## After 4:00
-
-Judges review every submission and vote for the demos they want to see. From 4:30, finalists are
-called one at a time: join the [demo call](https://meet.google.com/ajf-fryh-age) and share your screen. Keep your project running
-and ready. Judges rank at 5:30 and winners are announced at 5:45 PM.
-
-## After today
-
-Your code stays yours and stays open. Illumination Health + Home may use, change and build on it.
-If IHH wants to take your prototype further, they will contact the person you name on the form.
-Any work after today is a separate conversation between your team and IHH.
+## Data and license
+The delivered demo fixtures are invented. Do not upload real client information. The repository is public and MIT licensed; see [LICENSE](../LICENSE). No demo video has been supplied; the live application is the demo link.
