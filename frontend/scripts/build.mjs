@@ -11,8 +11,12 @@ await writeFile(path.join(out,'app.js'),app);
 await copyFile(path.join(root,'challenges/1-referral-intake/criteria/admission-criteria.md'),path.join(out,'reference/admission-criteria.md'));
 await copyFile(path.join(root,'docs/frontend-research-and-handoff.md'),path.join(out,'reference/frontend-research-and-handoff.md'));
 await writeFile(path.join(out,'.nojekyll'),'');
-console.log('Built static frontend only in frontend/dist (no PDFs, ZIPs, OCR, or case data).');
+console.log('Built static frontend only in frontend/dist (no patient packets, ZIPs, OCR, or case data).');
 
 
 await mkdir(path.join(out,'assets'),{recursive:true});
 for(const f of ['source-sans-3-latin.woff2','source-sans-3-LICENSE.txt'])await copyFile(path.join(frontend,'assets',f),path.join(out,'assets',f));
+
+// Explicitly authored, invented training documents only; never copy runtime uploads.
+await mkdir(path.join(out,'downloads'),{recursive:true});
+for(const name of ['Careward-Synthetic-Referral-Packet.pdf', 'Careward-Synthetic-Referral-Packet-Scanned.pdf'])await copyFile(path.join(frontend,'fixtures/synthetic-training',name),path.join(out,'downloads',name));
