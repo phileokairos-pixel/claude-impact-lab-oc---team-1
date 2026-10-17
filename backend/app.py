@@ -442,7 +442,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
 
     allowed_assets = {name: ROOT / 'frontend' / name for name in (
         'assets/source-sans-3-latin.woff2', 'assets/source-sans-3-LICENSE.txt',
-        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'field-review-model.js', 'field-review.js',
+        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'referral-flow.js','referral-flow-model.js','field-review-model.js', 'field-review.js',
         'team/index.html', 'team/board.js', 'team/tasks.json')}
     allowed_assets.update({
         'challenges/1-referral-intake/criteria/admission-criteria.md': ROOT / 'challenges/1-referral-intake/criteria/admission-criteria.md',
