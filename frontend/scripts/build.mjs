@@ -4,7 +4,7 @@ import path from 'node:path';
 const frontend=fileURLToPath(new URL('../',import.meta.url));
 const root=path.resolve(frontend,'..'),out=path.join(frontend,'dist');
 await rm(out,{recursive:true,force:true});await mkdir(path.join(out,'reference'),{recursive:true});
-for(const f of ['index.html','styles.css','model.js','backend-client.js','referral-flow.js','referral-flow-model.js','onboarding.js','field-review-model.js','field-review.js'])await copyFile(path.join(frontend,f),path.join(out,f));
+for(const f of ['index.html','styles.css','model.js','backend-client.js','referral-flow.js','referral-flow-model.js','onboarding.js','pdf-preview.js','field-review-model.js','field-review.js'])await copyFile(path.join(frontend,f),path.join(out,f));
 let app=await readFile(path.join(frontend,'app.js'),'utf8');
 app=app.replaceAll('../challenges/1-referral-intake/criteria/admission-criteria.md','./reference/admission-criteria.md').replaceAll('../docs/frontend-research-and-handoff.md','./reference/frontend-research-and-handoff.md');
 await writeFile(path.join(out,'app.js'),app);
@@ -20,3 +20,7 @@ for(const f of ['source-sans-3-latin.woff2','source-sans-3-LICENSE.txt'])await c
 // Explicitly authored, invented training documents only; never copy runtime uploads.
 await mkdir(path.join(out,'downloads'),{recursive:true});
 for(const name of ['Careward-Synthetic-Referral-Packet.pdf', 'Careward-Synthetic-Referral-Packet-Scanned.pdf'])await copyFile(path.join(frontend,'fixtures/synthetic-training',name),path.join(out,'downloads',name));
+
+await mkdir(path.join(out,'vendor'),{recursive:true});
+for(const name of ['pdf.mjs','pdf.worker.mjs'])await copyFile(path.join(frontend,'node_modules/pdfjs-dist/build',name),path.join(out,'vendor',name));
+await copyFile(path.join(frontend,'node_modules/pdfjs-dist/LICENSE'),path.join(out,'vendor/pdfjs-LICENSE'));

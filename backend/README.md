@@ -1,6 +1,8 @@
+> For the current one-process launcher and protected Render demo, see [demo-runtime.md](../docs/demo-runtime.md). Run `npm --prefix frontend ci` for the canvas PDF preview dependency. Default processing is OCR-only; optional model-backed extraction exists but is not configured automatically.
+
 # Local packet-processing backend
 
-This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. By default it does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations. An **optional analysis adapter boundary** (see below) lets the BE-03 extraction module plug in; nothing is connected until it is explicitly configured, and no real extractor exists in this repository yet.
+This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. By default it does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations. An **optional analysis adapter boundary** (see below) lets the BE-03 extraction module plug in; nothing is connected until it is explicitly configured, and the model-backed extractor requires explicit configuration and validation.
 
 ## Start
 

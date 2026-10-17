@@ -20,8 +20,8 @@ export function validateTextDraft(data,version){
  return data;
 }
 export async function detectBackend(){
- if(!['127.0.0.1','localhost','[::1]'].includes(location.hostname))return null;
- try{const r=await fetch('/health',{signal:AbortSignal.timeout(2000)});if(!r.ok)return null;const d=await r.json();return d.service==='ihh-local-intake'?d:null;}catch{return null;}
+ const local=['127.0.0.1','localhost','[::1]'].includes(location.hostname);
+ try{const r=await fetch('/health',{signal:AbortSignal.timeout(2000)});if(!r.ok)return null;const d=await r.json();return d.service==='ihh-local-intake'&&(local||d.deploymentMode==='protected-demo')?d:null;}catch{return null;}
 }
 export function openBackendReview({file,container,onBack,referralId,onId}){
  const controller=new AbortController();let id=referralId,record=null,page=1,reviewer='',draft=null,busy=false,stale=false;const notes=new Map(),fieldDrafts=new Map();let rationale='',decision='clarification',attested=false;

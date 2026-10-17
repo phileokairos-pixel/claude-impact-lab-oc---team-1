@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: careward-synthetic-demo
+    runtime: docker
+    branch: codex/frontend-live
+    plan: free
+    healthCheckPath: /ready
+    envVars:
+      - key: CAREWARD_PUBLIC_DEMO
+        value: "1"
+      - key: CAREWARD_DEMO_PASSWORD
+        generateValue: true

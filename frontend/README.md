@@ -128,3 +128,6 @@ an optional planning date. A reusable presentation boundary supports saving,
 retry and stale-record states for the forthcoming API integration. See
 [onboarding component contract](../docs/onboarding-component.md). No reminders
 are sent and the new controls do not make the record a shared clinical record.
+
+
+PDF preview now uses pinned, self-hosted PDF.js to render pages onto a canvas, avoiding Chrome’s blocked embedded-PDF plugin. Run `npm --prefix frontend ci` before building or serving the local API. Page navigation, zoom and a plain-text view are provided; this does not itself perform OCR or clinical analysis. See docs/demo-runtime.md for the protected, synthetic-only Render deployment.

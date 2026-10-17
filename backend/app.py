@@ -8,6 +8,8 @@ All document data is ephemeral, outside the checkout, and removed at shutdown.
 """
 from __future__ import annotations
 
+from backend.demo_hosting import DemoHosting, TRAINING_HASHES
+
 import copy
 import hashlib
 import re
@@ -324,6 +326,7 @@ class PacketService:
 
 
 def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None):
+    hosting = DemoHosting.from_env()
     runtime = analysis or AnalysisRuntime()   # reads configuration only; builds no client, reads no files
 
     @asynccontextmanager
@@ -342,11 +345,13 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
     @app.middleware('http')
     async def local_guards(request: Request, call_next):
         # No CORS grants, cross-site browser writes, or untrusted Host/DNS rebinding.
-        if request.url.hostname not in ('127.0.0.1', 'localhost', '::1', 'testserver'):
+        if (hosting.enabled and request.url.hostname != hosting.hostname) or (not hosting.enabled and request.url.hostname not in ('127.0.0.1', 'localhost', '::1', 'testserver')):
             return JSONResponse({'detail': 'This prototype is localhost-only.'}, status_code=403)
+        if hosting.enabled and request.url.path != '/ready' and not hosting.authorized(request.headers.get('authorization')):
+            return JSONResponse({'detail': 'Sign in to the synthetic demo.'}, status_code=401, headers={'WWW-Authenticate': 'Basic realm="Careward synthetic demo"', 'Cache-Control': 'no-store'})
         if request.method in ('POST', 'PATCH', 'DELETE'):
             origin = request.headers.get('origin')
-            expected = f'{request.url.scheme}://{request.url.netloc}'
+            expected = f'https://{hosting.hostname}' if hosting.enabled else f'{request.url.scheme}://{request.url.netloc}'
             if (origin and origin != expected) or request.headers.get('sec-fetch-site') == 'cross-site':
                 return JSONResponse({'detail': 'Cross-site upload/review is not permitted.'}, status_code=403)
             length = request.headers.get('content-length')
@@ -357,6 +362,10 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'no-referrer'
         return response
+
+    @app.get('/ready')
+    def ready():
+        return {'status': 'ok'}
 
     @app.get('/health')
     def health():
@@ -371,6 +380,7 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
         if ready.status != 'ready':
             analysis_info.update(errorCode=ready.code, reason=ready.message)
         return {'status': 'ok', 'service': 'ihh-local-intake',
+                'deploymentMode': 'protected-demo' if hosting.enabled else 'localhost',
                 'capabilities': {'pdfText': True, 'ocr': shutil.which('tesseract') is not None,
                                  'clinicalAnalysis': ready.status == 'ready', 'sending': False},
                 'analysis': analysis_info,
@@ -402,6 +412,8 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
                         raise HTTPException(413, 'Upload exceeds 25 MB.')
                     target.write(chunk)
                     digest.update(chunk)
+            if hosting.enabled and digest.hexdigest() not in TRAINING_HASHES:
+                raise HTTPException(422, 'Hosted demo accepts only the two downloadable Careward synthetic training PDFs. No patient packets are accepted.')
             with path.open('rb') as header:
                 signature = header.read(5)
             if not size or signature != b'%PDF-':
@@ -572,8 +584,10 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
 
     allowed_assets = {name: ROOT / 'frontend' / name for name in (
         'assets/source-sans-3-latin.woff2', 'assets/source-sans-3-LICENSE.txt',
-        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'referral-flow.js','referral-flow-model.js','onboarding.js','field-review-model.js', 'field-review.js',
+        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'referral-flow.js','referral-flow-model.js','onboarding.js','pdf-preview.js','field-review-model.js', 'field-review.js',
         'team/index.html', 'team/board.js', 'team/tasks.json')}
+    allowed_assets.update({f'vendor/{name}': ROOT / 'frontend/node_modules/pdfjs-dist/build' / name for name in ('pdf.mjs', 'pdf.worker.mjs')})
+    allowed_assets['vendor/pdfjs-LICENSE'] = ROOT / 'frontend/node_modules/pdfjs-dist/LICENSE'
     allowed_assets.update({name: ROOT / 'frontend' / 'fixtures' / 'synthetic-training' / name.split('/')[-1] for name in ('downloads/Careward-Synthetic-Referral-Packet.pdf', 'downloads/Careward-Synthetic-Referral-Packet-Scanned.pdf')})
     allowed_assets.update({
         'challenges/1-referral-intake/criteria/admission-criteria.md': ROOT / 'challenges/1-referral-intake/criteria/admission-criteria.md',
