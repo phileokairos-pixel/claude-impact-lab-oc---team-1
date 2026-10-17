@@ -5,7 +5,9 @@ export function createReferralFlow(now=Date.now()){
  const record=(id,source,age)=>({id,source,receivedAt:now-age*60000,revision:1,questions:[],steps:Object.fromEntries(intakeSteps.map(s=>[s,'not_checked'])),events:[],exportedRevision:null});
  return {mode:'synthetic-demo',records:[record('DEMO-001','Hospital · synthetic',85),record('DEMO-002','SNF · synthetic',35),record('DEMO-003','Community · synthetic',12)],draft:{prepared:false,submittedId:null,gapsAcknowledged:false,items:[{label:'Referral summary',status:'present'},{label:'Therapy / transfer note',status:'missing'},{label:'Medication self-administration',status:'unknown'},{label:'Screening collection date',status:'redacted'}]}};
 }
-export function changeRecord(r,type,detail,now=Date.now()){r.revision++;r.exportedRevision=null;r.events.push({type,detail,at:now,revision:r.revision});}
+export function invalidateHandoff(r){if(r.reviewHandoff)r.reviewHandoff.stale=true;}
+export function confirmHandoff(r,outcome){if(!['clarification','clinical-review','deny'].includes(outcome.decision)||!outcome.confirmedAt)throw Error('A supported human-confirmed next step is required.');changeRecord(r,'handoff_confirmed',outcome.decision);r.reviewHandoff={decision:outcome.decision,confirmedAt:outcome.confirmedAt,revision:r.revision,stale:false};}
+export function changeRecord(r,type,detail,now=Date.now()){if(['source_field_changed','referrer_responded','clarification_requested'].includes(type))invalidateHandoff(r);r.revision++;r.exportedRevision=null;r.events.push({type,detail,at:now,revision:r.revision});}
 export function stage(r){return r.questions.some(q=>q.response&&!q.reviewed)?'Response needs review':r.questions.some(q=>!q.response)?'Waiting for referrer':'Ready for intake review';}
 export function remainingMinutes(r,now=Date.now()){return Math.ceil((r.receivedAt+120*60000-now)/60000);}
 export function submitReferral(flow,now=Date.now()){
@@ -32,6 +34,7 @@ export function reviewResponse(r,id,now=Date.now()){
 }
 export function recordStep(r,name,value){if(!intakeSteps.includes(name)||!['not_checked','recorded','needs_follow_up'].includes(value))throw Error('Invalid checklist state.');r.steps[name]=value;changeRecord(r,'manual_step_recorded',{name,value});}
 export function crmHandoff(r,reviewer,attested,fields=[]){
+ if(r.reviewHandoff?.stale)throw Error('The previous handoff is stale. Re-review the evidence and confirm a fresh next step.');
  if(!reviewer.trim()||!attested)throw Error('Enter reviewer initials and confirm you reviewed this handoff.');
  if(r.questions.some(q=>q.response&&!q.reviewed))throw Error('Review new responses before preparing the handoff.');
  r.exportedRevision=r.revision;

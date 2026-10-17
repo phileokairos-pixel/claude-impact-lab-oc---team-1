@@ -55,3 +55,12 @@ Responsive checks cover 390/640/768/940/1440 widths at a 650px viewport height;
 browser-zoom test. Keyboard tests cover handoff fields, modal Tab trapping and
 Escape/focus restoration. Full assistive-technology/manual zoom audit remains open
 in #10; unsupported claims must not be inferred from these checks.
+
+## Confirmed demo next step
+
+The synthetic review now records a bounded handoff (decision enum, timestamp,
+revision, stale flag) on DEMO-001 and links directly to its onboarding panel. New
+referrer evidence, source-field edits or revised findings invalidate that handoff.
+The UI reopens review and blocks stale CRM export. No clinical confirmation is
+persisted in localStorage; only controlled coordination metadata survives refresh.
+This demonstrates the intended transition without inventing the pending server API.

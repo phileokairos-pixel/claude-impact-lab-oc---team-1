@@ -59,3 +59,21 @@ The app now starts on a dedicated Referral inbox screen. **Review packet** opens
   clarification snapshot. Switch to Person receiving care for a simpler checklist.
 - Explain the boundary: browser-only demo metadata, no retained uploaded packet or
   clinical record, no cross-device sharing. Clearing saved progress resets it.
+
+## Connected review-to-onboarding rehearsal
+
+1. Review packet → Try a synthetic referral. Review all three findings, preserving
+   conflicts, missing information and removed dates.
+2. Continue → request clarification. Enter demo reviewer initials, rationale and
+   attestation, then confirm the local next step.
+3. Choose **Continue to referral & onboarding**. DEMO-001 shows that same confirmed
+   coordination step and its open questions. Set responsible team, next action and
+   an optional planning date; explicitly save demo checklist progress.
+4. Switch to Hospital referral staff and answer a request with synthetic text.
+5. Return to IHH: the previous handoff is stale, review confirmations are reopened,
+   and old exports are blocked. Review the response/source before a fresh next step.
+6. Explain refresh behavior: the saved demo checklist persists; clinical review and
+   confirmed next step do not. No public backend, live delivery or placement claim.
+
+Run `node frontend/tests/continuity-browser.cjs` against the built site on 4176.
+The real upload-to-inbox/server persistence slice still awaits #22/#23 and #24 wiring.

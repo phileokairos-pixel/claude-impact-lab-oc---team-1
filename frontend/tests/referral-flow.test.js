@@ -16,3 +16,13 @@ test('CRM handoff separates confirmed source fields from unresolved or edited on
 test('new responses take priority even when another clarification is outstanding',()=>{
  const r=createReferralFlow().records[0];const q=askQuestion(r,'mobility');askQuestion(r,'medication');answerQuestion(r,q.id,{unavailable:true});assert.equal(stage(r),'Response needs review');reviewResponse(r,q.id);assert.equal(stage(r),'Waiting for referrer');
 });
+
+test('confirmed demo handoff becomes stale after new evidence, not coordination-only changes',async()=>{
+ const {confirmHandoff,changeRecord}=await import('../referral-flow-model.js');
+ const r=createReferralFlow().records[0];
+ assert.throws(()=>confirmHandoff(r,{decision:'approve',confirmedAt:'2026-10-17'}));
+ confirmHandoff(r,{decision:'clarification',confirmedAt:'2026-10-17'});
+ changeRecord(r,'manual_step_recorded',{});assert.equal(r.reviewHandoff.stale,false);
+ changeRecord(r,'referrer_responded','question');assert.equal(r.reviewHandoff.stale,true);
+ confirmHandoff(r,{decision:'clinical-review',confirmedAt:'2026-10-17'});changeRecord(r,'source_field_changed','field');assert.equal(r.reviewHandoff.stale,true);
+});
