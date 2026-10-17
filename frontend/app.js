@@ -1,3 +1,4 @@
+import {startTour,renderClientProgress} from './onboarding.js';
 import {renderInbox,renderWorkflow,renderReferrer,updateFlowClocks,referralFlow} from './referral-flow.js';
 import {askQuestion,changeRecord} from './referral-flow-model.js';
 import {createFieldReview} from './field-review-model.js';
@@ -15,6 +16,7 @@ roleBar.className='role-bar';
 roleBar.setAttribute('aria-label','Demo workspace role');
 roleBar.innerHTML=`<div class="role-context"><strong id="current-role">Viewing as: IHH intake staff</strong><p>Demo preview · no sign-in or access control</p></div><label for="workspace-role">Preview role</label><select id="workspace-role"><option value="ihh">IHH intake staff</option><option value="hospital">Hospital referral staff</option><option value="client">Person receiving care</option></select>`;
 main.before(roleBar);
+const tourButton=document.createElement('button');tourButton.className='button';tourButton.id='take-tour';tourButton.textContent='Take a tour';tourButton.onclick=()=>startTour(workspaceRole);roleBar.append(tourButton);
 roleBar.querySelector('select').onchange=e=>{
  if(stopBackendView?.canLeave&&!stopBackendView.canLeave()){e.target.value=workspaceRole;return;}
  workspaceRole=e.target.value;fileRequest++;render();focusHeading();
@@ -97,6 +99,7 @@ function renderExternalWorkspace(){
  const banner='<div class="notice"><strong>Synthetic role preview.</strong> Invented example only. No real referral status, submission, message, or connection to a care team. Switching roles does not authenticate anyone.</div>';
  if(workspaceRole==='client'){
   main.innerHTML=`${heading('PERSON RECEIVING CARE','Your referral','A simple view of what is happening and who can help.')}${banner}<div class="guide-grid"><section class="panel"><span class="badge unknown">Example status · waiting for review</span><h2>Your referral is being reviewed</h2><p>In this example, the hospital has asked IHH to review a referral. A referral is a request for care; it does not mean a place has been confirmed.</p><h3>What you need to do</h3><p>This example has no action assigned to you. Your actual next steps must come from your care team.</p><h3>What happens next</h3><p>The intake team reviews the information. Your care team can explain what information is still needed and discuss the next step with you.</p><p><strong>No placement or arrival time is confirmed in this demo.</strong></p></section><section class="panel"><h2>Questions for your care team</h2><p>You can ask the hospital staff helping with your referral:</p><ul><li>Who can update me about my referral?</li><li>Is there anything you need from me?</li><li>What should I expect next?</li></ul><button class="button" id="client-questions">Show a question I can ask</button><p id="client-question" role="status"></p><p class="muted">This button only displays a suggested question. It does not contact anyone.</p></section></div>`;
+  const progress=document.createElement('div');main.append(progress);renderClientProgress(progress,workflowId);
   main.querySelector('#client-questions').onclick=()=>{main.querySelector('#client-question').textContent='“Could you explain where my referral stands and what I should do next?”';};
  }else{renderReferrer(main);}
 }

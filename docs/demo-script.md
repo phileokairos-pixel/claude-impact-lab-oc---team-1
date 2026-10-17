@@ -48,3 +48,14 @@ The two-hour clock is a provisional demo target. Source information conflicts ab
 - Public navigation and deployment exclude the internal team board. GitHub Issues/Projects remains the team tracker.
 
 The app now starts on a dedicated Referral inbox screen. **Review packet** opens or resumes the separate packet workspace. Sidebar selection and breadcrumbs follow the current screen; returning through DEMO-001 preserves its review state. New responses sort ahead of waiting requests even when another request remains unanswered.
+
+## Walkthrough and continuity
+
+- Use **Take a tour** for role-specific guidance; Escape or Skip / close returns to
+  the current work without changing it.
+- Open DEMO-001 from the inbox. In **Continue onboarding**, change a proposed
+  coordination step and explicitly save demo progress on this device.
+- Refresh and reopen DEMO-001 to demonstrate the retained checklist and historical
+  clarification snapshot. Switch to Person receiving care for a simpler checklist.
+- Explain the boundary: browser-only demo metadata, no retained uploaded packet or
+  clinical record, no cross-device sharing. Clearing saved progress resets it.

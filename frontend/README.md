@@ -106,3 +106,19 @@ The synthetic inbox, hospital completeness check, clarification thread and mock 
 Start `python3 backend/tests/field_browser_server.py` in one terminal, then run `node frontend/tests/backend-fields-browser.cjs`. This serves the real API on loopback port 8001 with an injected synthetic analysis adapter and invented PDF; it never calls a model. The browser test covers all-field review, source navigation, retained edits on concurrent 409/reload, uncertainty gates, confirmed export and reversal validation. Stop the test server afterward. Production model extraction and clinical accuracy are not validated by this test.
 
 The internal team board is excluded from the public build and navigation. Its source remains in the repository for reference; GitHub Issues/Projects is the current team tracker.
+
+### Walkthrough and demo onboarding continuity
+
+“Take a tour” opens a keyboard-accessible walkthrough for the selected role without
+leaving the current review. In an inbox referral, “Continue onboarding” retains
+proposed coordination tasks after an explicit **Save demo progress on this device**.
+The client preview shows the saved checklist for the last selected demo referral.
+
+Only fixed demo IDs, enumerated checklist states, a save timestamp, and clarification
+categories/statuses are stored in localStorage. Replies, source fields, decisions,
+PDFs and real API referral IDs are excluded. Saved clarification categories are a
+historical snapshot, not restored clinical evidence; the queue remains session-only.
+Clear saved progress removes that referral's snapshot. Storage failures display an
+error rather than claiming a save. This is not a shared or production client record.
+
+Check with `node frontend/tests/onboarding-browser.cjs` (static build on port 4176).
