@@ -54,3 +54,13 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+## Implementation update (branch `be-03-extraction-adapter`)
+
+Added, all on the **unagreed draft** contract (Harjeev must review before it is called agreed):
+- `backend/extraction.py`: `IHH_ANALYSIS_ADAPTER=backend.extraction:create_adapter`. Lazy client, page text framed as untrusted, only the written criteria rules as context, static error messages, truncated/non-JSON output treated as retryable failure. No repair of model output; everything goes through `validate_analysis_result`.
+- `backend/fixtures/synthetic-analysis-result.json`: checked-in synthetic fixture (marked synthetic) covering conflicting, redacted, missing and unreadable fields, three unresolved rules, and the status mapping for labels.
+- `docs/schemas/analysis-result.draft.schema.json`: JSON Schema for the adapter output. The server validator is stricter (quote must appear on the cited page, rule IDs must exist, coverage consistent).
+- `backend/tests/test_extraction.py` (12 tests).
+
+**Not done:** the adapter has never called a real model; the model ID is unverified; field IDs are chosen by the model (no agreed field list yet); prompt `extract-draft-1` is untested; the frontend adapter that loads this fixture is FE-03 (@phileokairos-pixel), blocked because the merged client rejects non-`not_connected` analysis. Approval stays disabled by existing review gates, and coverage must be complete before anything could change that.
