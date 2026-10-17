@@ -4,6 +4,7 @@ import unittest
 
 import fitz
 from fastapi.testclient import TestClient
+from backend.analysis import AnalysisRuntime
 from backend.app import create_app
 
 
@@ -21,7 +22,7 @@ def pdf_bytes(pages=1, scanned=False, encrypted=False):
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(create_app(ocr=lambda image: f'Synthetic OCR for {image.name}'))
+        self.client = TestClient(create_app(ocr=lambda image: f'Synthetic OCR for {image.name}', analysis=AnalysisRuntime(env={})))
         self.client.__enter__()
 
     def tearDown(self):
@@ -81,7 +82,7 @@ class ApiTests(unittest.TestCase):
             if path.name == 'page-2.png':
                 raise RuntimeError('Synthetic processing failure')
             return 'Synthetic extracted text'
-        with TestClient(create_app(ocr=ocr)) as c:
+        with TestClient(create_app(ocr=ocr, analysis=AnalysisRuntime(env={}))) as c:
             response = c.post('/api/referrals', files={'file': ('scan.pdf', pdf_bytes(3, scanned=True), 'application/pdf')})
             packet_id = response.json()['referralId']
             for _ in range(100):
@@ -123,7 +124,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get('/health',headers={'host':'evil.example'}).status_code,403)
 
     def test_session_data_removed_at_shutdown(self):
-        with TestClient(create_app(ocr=lambda _: 'Synthetic OCR')) as c:
+        with TestClient(create_app(ocr=lambda _: 'Synthetic OCR', analysis=AnalysisRuntime(env={}))) as c:
             root=c.app.state.service.root
             self.assertTrue(root.exists())
         self.assertFalse(root.exists())

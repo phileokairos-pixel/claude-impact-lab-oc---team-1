@@ -1,6 +1,6 @@
 # Local packet-processing backend
 
-This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. It does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations.
+This implements the first adoption step: a permitted PDF becomes searchable text alongside its original pages, with explicit human review and an unsent clarification/escalation draft. By default it does not extract clinical form fields, apply admission criteria, call an AI provider, or make eligibility recommendations. An **optional analysis adapter boundary** (see below) lets the BE-03 extraction module plug in; nothing is connected until it is explicitly configured, and no real extractor exists in this repository yet.
 
 ## Start
 
@@ -17,7 +17,7 @@ Tesseract must be installed for image-only scans (`tesseract --version`). On Deb
 
 Open the server root in your local browser. It serves the same frontend with an **Extract text with local backend** action after selecting a permitted PDF. The app detects this service only on localhost. It never uploads a PDF from GitHub Pages to an arbitrary remote server.
 
-No API keys are needed. This is not a public backend deployment: bind only to localhost. Host and Origin guards reject nonlocal/cross-site requests. There is no production authentication, tenant isolation, durable clinical audit, or compliance certification.
+No API keys are needed for the default OCR-only service. This is not a public backend deployment: bind only to localhost. Host and Origin guards reject nonlocal/cross-site requests. There is no production authentication, tenant isolation, durable clinical audit, or compliance certification.
 
 ## What is implemented
 
@@ -36,9 +36,9 @@ No API keys are needed. This is not a public backend deployment: bind only to lo
 
 | Method / path | Result |
 |---|---|
-| GET `/health` | Capability flags, limits, ephemeral-storage description |
+| GET `/health` | Capability flags, limits, ephemeral-storage description, and an offline `analysis` configuration report (never calls a model) |
 | POST `/api/referrals` (multipart `file`) | 202: referral ID, job ID, initial version |
-| GET `/api/jobs/{id}` | Actual queued/rendering/extracting/text_ready/failed state and processed-page counts |
+| GET `/api/jobs/{id}` | Actual queued/rendering/extracting/text_ready/failed state, processed-page counts, and a separate `analysis` status |
 | GET `/api/referrals/{id}` | Original-page manifest/text, explicit disconnected analysis, reviews and current outcome |
 | GET `/api/referrals/{id}/search?q=term` | Unverified text snippets with original page numbers |
 | GET `/api/referrals/{id}/pages/{n}/image` | Rendered original page |
@@ -47,6 +47,22 @@ No API keys are needed. This is not a public backend deployment: bind only to lo
 | GET `/api/referrals/{id}/draft` | Unsent draft only for the current confirmed version |
 
 `text_ready` means text processing finished, **not** clinical analysis completed. `partial: true` indicates a page needs manual attention. An approval/denial attempt is always rejected in this version; no client-side override can enable it.
+
+## Analysis adapter (optional, off by default)
+
+`job.state` stays text-processing only. A separate `job.analysis.status` reports `not_connected` (default), `unavailable`, `waiting_for_text`, `queued`, `checking`, `needs_review` or `failed`. **`text_ready` is not analysis completion and `needs_review` is not verification.** A failed or unavailable analysis leaves `formFields`/`findings` empty and manual review fully available through the API. **Frontend caveat:** the merged `frontend/backend-client.js` deliberately fails closed on any analysis status other than `not_connected`, so keep `IHH_ANALYSIS_ADAPTER` unset when using the browser UI until the integration lane (FE-03) adapts it; see `docs/backend-analysis-contract.md`. Approval/denial stay rejected regardless of coverage.
+
+Configuration is environment-only and server-side; copy `.env.example` and see it for every variable. There is deliberately **no default model ID**:
+
+```bash
+python3 -m pip install -r backend/requirements-analysis.txt   # optional SDK, pinned
+export IHH_ANALYSIS_MODEL=<model id>  ANTHROPIC_API_KEY=<set securely, never in Git>
+python3 -m backend.analysis check-model      # confirms the key can see that model; sends no document data
+```
+
+Guarantees, each covered by `backend/tests/test_analysis.py`: startup and `/health` need no credential and call no model; the adapter module is located with `find_spec` (not executed) for `/health`, and a model client is constructed only inside the adapter factory on the inference path; each model call has a timeout (default 120 s, max 600) and rejected or transient responses are retried within `IHH_ANALYSIS_MAX_ATTEMPTS` (default 2, max 3) while timeouts fail fast; model errors, timeouts, missing credentials, invalid or untraceable responses (unknown rule IDs, out-of-range pages, quotes not in the page text, decision-style keys) become `failed`/`unavailable` and never a successful result; error text is a static message and never includes document text, model output or credentials. Criteria are read from the explicit `challenges/1-referral-intake/criteria/` directory (override with `IHH_CRITERIA_DIR`). The archived `blind_eval.py` is not in the working tree (only inside `referral-review-repo.zip`); moving it behind a lazy client and separating `score` from `suggest` is BE-05 work.
+
+The result shape is a **draft** (`contractStatus: "unagreed-draft"`) taken from `docs/frontend-research-and-handoff.md`; BE-03 owns the real contract and replaces `validate_analysis_result`. Full integration contract, exact JSON and open questions: [`docs/backend-analysis-contract.md`](../docs/backend-analysis-contract.md).
 
 ## Data handling and limits
 
@@ -62,15 +78,15 @@ python3 -m unittest discover -s backend/tests -v
 npm --prefix frontend test
 ```
 
-API tests use synthetic documents and injected OCR for deterministic error coverage. Real Tesseract was separately exercised on a generated scanned-image PDF. The downloaded de-identified R01 packet also completed 34/34 pages with original numbers preserved; this checks pipeline execution, not OCR accuracy or clinical correctness. No patient-specific text is included in this repository.
+API tests use synthetic documents and injected OCR for deterministic error coverage; the analysis tests use clearly labeled **synthetic fake adapters** (no model is called, so they validate the server's handling of bad or missing analysis, not extraction quality). Real Tesseract was separately exercised on a generated scanned-image PDF. The downloaded de-identified R01 packet also completed 34/34 pages with original numbers preserved; this checks pipeline execution, not OCR accuracy or clinical correctness. No patient-specific text is included in this repository.
 
 The browser workflow was tested using the public blank referral form: actual PDF text/page images, review note, confirmation, unsent draft, invalidation after an edit, and mobile layout. The local flow test is `backend/tests/browser.cjs`, requiring Playwright/Chromium and a running server; set `PLAYWRIGHT_MODULE` when using an externally installed module.
 
 ## Handoff to Harjeev and Vibhu
 
-- BE-01: local API slice works; public authenticated hosting, production robustness, and AI jobs remain separate work.
+- BE-01: local API slice and the analysis adapter boundary work (fake-adapter tested; `check-model` exercised only against missing/fake credentials, never a real model ID); public authenticated hosting, production robustness and a real extractor remain separate work.
 - BE-02: rendering/OCR/page provenance/search work; orientation, quality assessment, structured checkbox/handwriting extraction and source regions still need attention.
-- BE-03: no model or clinical extractor is connected. Implement versioned fields/findings with real evidence; do not promote OCR text into verified facts.
+- BE-03: no model or clinical extractor is connected. Implement an adapter against the boundary above (`backend/analysis.py`), settle the open contract questions in `docs/backend-analysis-contract.md`, and replace the draft validator; do not promote OCR text into verified facts.
 - BE-04: local next-step guards and stale-draft invalidation work. Complete rule-dependent invalidation, authenticated reviewers, durable audit and idempotency remain.
 
 See `docs/adoption-and-demo-strategy.md` for the staged adoption plan. Keep existing synthetic demo and real-text workflow clearly separated.
