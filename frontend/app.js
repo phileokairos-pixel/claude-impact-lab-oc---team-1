@@ -161,3 +161,8 @@ function startPresentation(){
  function keys(e){if(e.key==='Escape'){e.preventDefault();close();return;}if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;if(e.key==='ArrowRight'){e.preventDefault();panel.querySelector('#presentation-next').click();}else if(e.key==='ArrowLeft'&&index>0){e.preventDefault();index--;draw();}}
  document.addEventListener('keydown',keys);draw();
 }
+
+// A shareable presentation entry point, including navigation within an open tab.
+function openPresentationLink(){if(location.hash==='#present')startPresentation();}
+window.addEventListener('hashchange',openPresentationLink);
+openPresentationLink();
