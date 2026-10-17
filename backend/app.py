@@ -326,7 +326,7 @@ def create_app(ocr=default_ocr):
         return FileResponse(ROOT / 'frontend/index.html')
 
     allowed_assets = {name: ROOT / 'frontend' / name for name in (
-        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js',
+        'index.html', 'app.js', 'styles.css', 'model.js', 'backend-client.js', 'field-review-model.js', 'field-review.js',
         'team/index.html', 'team/board.js', 'team/tasks.json')}
     allowed_assets.update({
         'challenges/1-referral-intake/criteria/admission-criteria.md': ROOT / 'challenges/1-referral-intake/criteria/admission-criteria.md',

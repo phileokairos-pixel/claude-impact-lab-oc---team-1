@@ -76,3 +76,9 @@ The current backend uses temporary local storage and unauthenticated reviewer la
 Begin a pilot with one coordinator and a narrow intake step alongside the existing process; use reviewed exports until a destination system is confirmed. Expand from search to verified prefill to completeness checks only after staff can correct errors and the team has measured quality. See [staged rollout](adoption-and-demo-strategy.md).
 
 The reported 120-minute packet review is a starting hypothesis, not a measured study. Targets of 90/60/30 minutes represent 25/50/75% less time. Measure hands-on review, total elapsed turnaround, corrections and missed critical information separately before claiming savings.
+
+## Frontend integration update: field review
+
+The synthetic field-review/export UI is implemented in `frontend/field-review.js` and `frontend/field-review-model.js`. It retains extracted originals, corrections, reviewer/history, unresolved items, original example-page links and a revision-bound text/JSON export. Related synthetic findings are invalidated after field edits. It is a UI-only fixture, not an alternative server contract or real extraction.
+
+Harjeev: provide the validated BE-03 schema/fixture before replacing the synthetic data boundary. Vibhu: connect the server-authoritative review revision, correction history, allowed actions and confirmed export; do not rely on the browser's guards as authorization. Frontend integration will adapt the agreed contract through `backend-client.js`. Do not route uploaded PDFs through the synthetic store. Both new JS modules are allowed by the local static-file handler so existing local startup remains usable.

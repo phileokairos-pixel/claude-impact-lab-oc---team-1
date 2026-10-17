@@ -3,10 +3,10 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:4173/frontend/');await page.screenshot({path:'/tmp/intake-upload.png',fullPage:true});
+ await page.goto(process.env.FRONTEND_URL||'http://127.0.0.1:4173/frontend/');await page.screenshot({path:'/tmp/intake-upload.png',fullPage:true});
  await page.locator('#file-input').setInputFiles({name:'bad.pdf',mimeType:'application/pdf',buffer:Buffer.from('not a pdf')});await page.getByText('This file does not have a valid PDF header.').waitFor();
  await page.locator('#demo').click();assert.equal(await page.locator('#continue').isDisabled(),true);await page.screenshot({path:'/tmp/intake-review.png',fullPage:true});
- await page.locator('#fields-view').click();await page.locator('#field-0').fill('Correction without explanation');await page.locator('[data-field="0"] button[type=submit]').click();await page.getByText('Explain the correction in at least 12 characters.').waitFor();
+ await page.locator('#fields-view').click();await page.locator('#field-reviewer').fill('QA');await page.locator('#field-0').fill('Correction without explanation');await page.locator('[data-field="0"] button[type=submit]').click();await page.getByText('Explain the correction in at least 12 characters.').waitFor();
  await page.locator('#note-0').fill('Synthetic reviewer correction for interaction testing.');await page.locator('[data-field="0"] button[type=submit]').click();assert.equal(await page.locator('#field-0').inputValue(),'Correction without explanation');await page.locator('#back-to-findings').click();
  await page.locator('#finding-status').selectOption('meets');await page.locator('#review-form button').click();await page.getByText('Explain the evidence for this change (at least 12 characters).').waitFor();await page.locator('#finding-status').selectOption('conflict');await page.locator('#review-form button').click();
  for(const id of ['COG-1','INF-2']){await page.locator(`[data-id="${id}"]`).click();await page.locator('#review-form button').click();}

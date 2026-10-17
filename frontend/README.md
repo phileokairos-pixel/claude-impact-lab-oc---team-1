@@ -58,3 +58,13 @@ The deploy command builds an explicit allowlist of static files into ignored `di
 ## Local document-processing mode
 
 Run the FastAPI service described in [backend/README.md](../backend/README.md), then open its root page locally. After selecting a permitted PDF, choose **Extract text with local backend**. This sends the file to the service on your own computer and enables real page images/text, search, review notes and an unsent next-step draft. It does not generate clinical fields or eligibility decisions. GitHub Pages remains static; it does not expose this localhost backend.
+
+## Field verification and reviewed summary
+
+In the synthetic demo, choose **Review prefilled form**. The workspace keeps source pages beside six example fields, preserves original suggestions, records correction notes and reviewer labels, and separates reviewed-but-unresolved fields from source-verified fields. All fields must be reviewed before a person can attest and prepare a summary. Text and JSON exports include unresolved items and explicitly identify synthetic data. Editing a field removes the prior export and requires review again; related synthetic findings also require renewed review.
+
+`field-review-model.js` is a UI-only synthetic fixture/state model, **not the BE-03 backend schema**. `field-review.js` renders that state. No arbitrary uploaded PDF is routed through these fixtures. The local OCR workflow still runs through `backend-client.js`; real extracted fields and server-authoritative review/export are awaiting the shared Harjeev/Vibhu contract. The only backend change for this UI is adding the two static module names to the local asset allowlist.
+
+Reviewer labels/history are browser memory, not authenticated or durable records. Missing, conflicting and redacted example fields cannot be promoted to verified by a checkbox. The exported scope is six example fields, not the full IHH intake form. No clinical eligibility or insurance authorization is established.
+
+Run `npm test` for the state guards. For the field workflow browser test, serve the built frontend, set `FRONTEND_URL` to that internal test server, then run `node frontend/tests/field-review-browser.cjs` from the repository root. This requires Playwright and Chromium; `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` can select installed paths. The existing `frontend/tests/browser.cjs` also accepts `FRONTEND_URL`.
