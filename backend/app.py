@@ -26,6 +26,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.timing import TimingInput, compute as compute_timing, open_intervals, summarize
 from backend.review import (
     FieldReviewInput, apply_field_review, build_export, draft_sections, now_iso, with_actions,
 )
@@ -97,9 +98,16 @@ def quality_flags(method: str, text: str, blank: bool) -> list[str]:
     return flags
 
 
+def record_field_corrected(record, field_id):
+    field = next((f for f in record['formFields'] if f['id'] == field_id), None)
+    return bool(field and field['review'].get('correctedValue') is not None)
+
+
 class PacketService:
-    def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None):
+    def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None):
         self.root = data_dir
+        self.clock = clock or now_iso
+        self.timelines: dict[str, list[dict]] = {}   # BE-06: event log, no clinical content
         self.ocr = ocr
         self.analysis = analysis or AnalysisRuntime()
         self.lock = threading.RLock()
@@ -109,6 +117,12 @@ class PacketService:
         # Model latency must not hold the OCR queue; a separate single worker runs analysis.
         self.analysis_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='analysis')
         self.active_slots = threading.BoundedSemaphore(MAX_ACTIVE_JOBS)
+
+    def mark(self, packet_id, kind, **extra):
+        """Append a timing event. Extras are labels/booleans only, never document or reviewer text."""
+        with self.lock:
+            version = self.records[packet_id]['version'] if packet_id in self.records else None
+            self.timelines.setdefault(packet_id, []).append({'at': self.clock(), 'kind': kind, 'version': version, **extra})
 
     def close(self):
         self.stopping.set()
@@ -124,6 +138,10 @@ class PacketService:
     def run_analysis(self, packet_id):
         try:
             self._run_analysis(packet_id)
+            with self.lock:
+                record = self.records.get(packet_id)
+                if record and not self.stopping.is_set() and record['analysis']['status'] in ('needs_review', 'failed', 'unavailable'):
+                    self.mark(packet_id, 'analysis_terminal', status=record['analysis']['status'])
         except Exception:
             # Never leave 'queued'/'checking' behind: it would block confirming the next step forever.
             with self.lock:
@@ -192,6 +210,7 @@ class PacketService:
                     if self.stopping.is_set():
                         with self.lock:
                             self.records[packet_id]['job']['state'] = 'failed'
+                            self.mark(packet_id, 'text_failed')
                             self.skip_analysis(self.records[packet_id], 'text_not_ready',
                                                'Analysis did not run because text processing stopped.')
                         return
@@ -239,6 +258,7 @@ class PacketService:
                 queue_analysis = False
                 with self.lock:
                     record['job']['state'] = 'text_ready'
+                    self.mark(packet_id, 'text_ready')
                     record['job']['partial'] = any(p['state'] != 'ready' for p in record['pages'])
                     # text_ready is OCR completion only. Analysis is queued atomically with it so a
                     # reader never sees text_ready next to a stale "waiting" analysis state.
@@ -254,6 +274,7 @@ class PacketService:
         except Exception:
             with self.lock:
                 self.records[packet_id]['job'].update(state='failed', error='PDF processing failed. No analysis or decision was generated.')
+                self.mark(packet_id, 'text_failed')
                 self.skip_analysis(self.records[packet_id], 'text_not_ready',
                                    'Analysis did not run because text processing failed.')
         finally:
@@ -283,18 +304,19 @@ class PacketService:
         }
         with self.lock:
             self.records[packet_id] = record
+            self.mark(packet_id, 'received')
         self.pool.submit(self.process, packet_id)
         return record
 
 
-def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
+def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None):
     runtime = analysis or AnalysisRuntime()   # reads configuration only; builds no client, reads no files
 
     @asynccontextmanager
     async def lifespan(app):
         folder = Path(tempfile.mkdtemp(prefix='ihh-local-packets-'))
         folder.chmod(0o700)
-        app.state.service = PacketService(folder, ocr, runtime)
+        app.state.service = PacketService(folder, ocr, runtime, clock)
         try:
             yield
         finally:
@@ -435,10 +457,12 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
                 raise HTTPException(409, 'Wait for document processing to finish.')
             if not 1 <= body.page <= len(record['pages']):
                 raise HTTPException(422, 'Page does not exist in this document.')
+            had_outcome = record['outcome'] is not None
             record['reviews'][str(body.page)] = body.model_dump(exclude={'version'})
             record['version'] += 1
             record['outcome'] = None
             service.records[packet_id] = record
+            service.mark(packet_id, 'page_note', invalidatedConfirmation=had_outcome)
             return with_actions(record)
 
     @app.post('/api/referrals/{packet_id}/outcome')
@@ -465,9 +489,10 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
             if any(not f['review'].get('reviewed') for f in record['formFields']):
                 raise HTTPException(409, 'Review every extracted field before recording the next step.')
             record['outcome'] = {**body.model_dump(exclude={'version'}), 'confirmedFromVersion': body.version,
-                                 'confirmedAtVersion': body.version + 1, 'confirmedAt': now_iso()}
+                                 'confirmedAtVersion': body.version + 1, 'confirmedAt': service.clock()}
             record['version'] += 1
             service.records[packet_id] = record
+            service.mark(packet_id, 'confirmation', decision=body.decision)
             return with_actions(record)
 
     @app.patch('/api/referrals/{packet_id}/fields/{field_id}')
@@ -475,16 +500,46 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         service = request.app.state.service
         with service.lock:
             record = service.get(packet_id)       # private copy: a rejected edit changes nothing
-            change = apply_field_review(record, field_id, body)
+            change = apply_field_review(record, field_id, body, now=service.clock)
             service.records[packet_id] = record
+            service.mark(packet_id, 'field_review', corrected=record_field_corrected(record, field_id),
+                         invalidatedConfirmation=change['invalidatedConfirmation'])
             return {**with_actions(record), 'change': change}
 
     @app.get('/api/referrals/{packet_id}/export')
     def export(packet_id: str, request: Request):
-        record = request.app.state.service.get(packet_id)
+        service = request.app.state.service
+        record = service.get(packet_id)
         if not record['outcome']:
             raise HTTPException(409, 'No current confirmed next step. Review and confirm first.')
+        service.mark(packet_id, 'export_viewed')
         return build_export(record)
+
+    @app.get('/api/referrals/{packet_id}/timing')
+    def timing(packet_id: str, request: Request):
+        service = request.app.state.service
+        service.get(packet_id)                       # 404 for unknown IDs
+        with service.lock:
+            return compute_timing(list(service.timelines.get(packet_id, [])), service.clock())
+
+    @app.post('/api/referrals/{packet_id}/timing')
+    def timing_event(packet_id: str, body: TimingInput, request: Request):
+        service = request.app.state.service
+        with service.lock:
+            service.get(packet_id)
+            open_now = open_intervals(service.timelines.get(packet_id, []))
+            name = 'pause' if body.event in ('pause', 'resume') else 'wait'
+            starting = body.event in ('pause', 'wait_start')
+            if starting == open_now[name]:
+                raise HTTPException(409, f'A {name} interval is already {"open" if starting else "closed"}.')
+            service.mark(packet_id, body.event, **({'reason': body.reason} if body.reason else {}))
+            return compute_timing(list(service.timelines[packet_id]), service.clock())
+
+    @app.get('/api/timing/summary')
+    def timing_summary(request: Request):
+        service = request.app.state.service
+        with service.lock:
+            return summarize({pid: list(ev) for pid, ev in service.timelines.items()}, service.clock())
 
     @app.get('/api/referrals/{packet_id}/draft')
     def draft(packet_id: str, request: Request):

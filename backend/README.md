@@ -46,6 +46,8 @@ No API keys are needed for the default OCR-only service. This is not a public ba
 | POST `/api/referrals/{id}/outcome` | `{version, decision, reviewer, rationale, attested}` → guarded next step |
 | PATCH `/api/referrals/{id}/fields/{fieldId}` | BE-04: `{version, value, assessment, reviewer, note, page}` → field review; keeps the original, invalidates dependent findings/outcome |
 | GET `/api/referrals/{id}/export` | BE-04: reviewed snapshot (confirmed vs unresolved); 409 without a current confirmation |
+| GET/POST `/api/referrals/{id}/timing` | BE-06: derived durations (null when unknown) / `{event: pause\|resume\|wait_start\|wait_end, reason?}` |
+| GET `/api/timing/summary` | BE-06: counts incl. failed/unfinished; no savings claim |
 | GET `/api/referrals/{id}/draft` | Unsent draft only for the current confirmed version |
 
 `text_ready` means text processing finished, **not** clinical analysis completed. `partial: true` indicates a page needs manual attention. An approval/denial attempt is always rejected in this version; no client-side override can enable it.
