@@ -96,3 +96,7 @@ The demo role selector separates the person receiving care, hospital referral st
 ## Careward design
 
 The approved interface name is **Careward · Referral coordination**. The green palette is retained with self-hosted Source Sans 3, larger readable type, restrained panels and visible mobile navigation. See [design conventions and presentation handoff](../docs/careward-design.md). Font license ships with the static assets.
+
+## Shared referral loop
+
+The synthetic inbox, hospital completeness check, clarification thread and mock CRM handoff share browser-session state across roles. See [the workflow handoff and demo steps](../docs/referral-loop-handoff.md). Source fields now open inline in evidence review. Uploaded PDFs remain a separate local preview/OCR path.
