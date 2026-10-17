@@ -27,6 +27,10 @@ Provide base URL, upload field name, exact response/error JSON, polling interval
 
 Local upload/job API implemented. Clinical analysis jobs and durable hosted service remain. See `backend/README.md` and the current frontend branch. This is a localhost prototype, not public backend deployment or complete ticket acceptance.
 
+### Update: analysis adapter boundary (branch `be-01-analysis-adapter`)
+
+Added `backend/analysis.py` and wired it into the existing job API without changing existing routes or the `job.state` flow: explicit env configuration (`.env.example`, no default model ID), a lazy adapter factory (no model client at import, startup or `/health`), bounded timeout/retry, draft-contract validation that rejects untraceable output, a separate `job.analysis.status`, and `python3 -m backend.analysis check-model`. Tested with **synthetic fake adapters only**: no model was called and no real extraction has been validated. A model ID has **not** been verified against a real key. The BE-03 contract is still unagreed; see `docs/backend-analysis-contract.md` for the exact JSON and open questions. Still open for this ticket: a real adapter (Harjeev, BE-03), frontend consumption of `job.analysis` (`backend-client.js`), the browser walkthrough with analysis, durable/hosted service, and moving the archived `blind_eval.py` behind a lazy client (BE-05).
+
 ## Copy/paste into your AI coding assistant
 
 Owner: Vibhu. Paste the following into your repository-connected coding assistant with this issue link. Claude Code or Codex can implement this; use a coding-capable model available to your team for schema/review logic. No particular model subscription is required by these instructions.

@@ -1,4 +1,7 @@
-"""Local PDF-to-text service. No model inference, eligibility decisions, or messaging.
+"""Local PDF-to-text service with an optional, explicitly configured analysis adapter.
+
+No eligibility decisions or messaging. OCR needs no model or key; analysis runs only when
+IHH_ANALYSIS_ADAPTER is configured (see backend/analysis.py and backend/README.md).
 
 Run: python3 -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 All document data is ephemeral, outside the checkout, and removed at shutdown.
@@ -22,6 +25,11 @@ import fitz
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from backend.analysis import (
+    CONTRACT_STATUS, AnalysisError, AnalysisRequest, AnalysisRuntime, AnalysisUnavailable, PageInput,
+    execute_analysis,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 25 * 1024 * 1024
@@ -65,18 +73,82 @@ def default_ocr(image: Path) -> str:
 
 
 class PacketService:
-    def __init__(self, data_dir: Path, ocr=default_ocr):
+    def __init__(self, data_dir: Path, ocr=default_ocr, analysis: AnalysisRuntime | None = None):
         self.root = data_dir
         self.ocr = ocr
+        self.analysis = analysis or AnalysisRuntime()
         self.lock = threading.RLock()
         self.stopping = threading.Event()
         self.records = {}
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='packet')
+        # Model latency must not hold the OCR queue; a separate single worker runs analysis.
+        self.analysis_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='analysis')
         self.active_slots = threading.BoundedSemaphore(MAX_ACTIVE_JOBS)
 
     def close(self):
         self.stopping.set()
         self.pool.shutdown(wait=True, cancel_futures=True)
+        # An in-flight model call cannot be cancelled; it is a daemon thread and its answer is discarded.
+        self.analysis_pool.shutdown(wait=False, cancel_futures=True)
+
+    def skip_analysis(self, record, code, message):
+        """Caller holds the lock. Analysis never ran; say so instead of leaving it 'waiting'."""
+        if record['analysis']['status'] == 'waiting_for_text':
+            record['analysis'] = {'status': 'unavailable', 'errorCode': code, 'error': message}
+
+    def run_analysis(self, packet_id):
+        try:
+            self._run_analysis(packet_id)
+        except Exception:
+            # Never leave 'queued'/'checking' behind: it would block confirming the next step forever.
+            with self.lock:
+                record = self.records.get(packet_id)
+                if record and record['analysis']['status'] in ('queued', 'checking'):
+                    record['analysis'] = {'status': 'failed', 'errorCode': 'internal_error',
+                                          'error': 'Analysis stopped unexpectedly. No analysis was produced.'}
+
+    def _run_analysis(self, packet_id):
+        runtime = self.analysis
+        with self.lock:
+            if self.stopping.is_set():
+                return
+            record = self.records[packet_id]
+            record['analysis'] = {'status': 'checking'}
+            request = AnalysisRequest(
+                referral_id=packet_id, model=runtime.settings.model,
+                timeout_seconds=runtime.settings.timeout_seconds, criteria_dir=runtime.settings.criteria_dir,
+                pages=tuple(PageInput(p['page'], p['state'], p['text']) for p in record['pages']))
+        try:
+            adapter = runtime.adapter()   # a model client, if any, is constructed here and nowhere earlier
+            result, attempts = execute_analysis(adapter, request, runtime.settings, runtime.sleep)
+        except AnalysisError as exc:
+            status = 'unavailable' if isinstance(exc, AnalysisUnavailable) else 'failed'
+            state = {'status': status, 'errorCode': exc.code, 'error': str(exc)}
+            if exc.attempts:
+                state['attempts'] = exc.attempts
+        except Exception:
+            state = {'status': 'failed', 'errorCode': 'adapter_error',
+                     'error': 'The analysis adapter failed unexpectedly. No analysis was produced.'}
+        else:
+            state = None
+        with self.lock:
+            if self.stopping.is_set():
+                return
+            record = self.records[packet_id]
+            if state is not None:
+                # Failed analysis leaves formFields/findings empty and manual review fully available.
+                record['analysis'] = state
+                return
+            # Outcomes are blocked while analysis is queued/checking, so no confirmed outcome can exist
+            # here and nothing needs invalidating; the version is intentionally not bumped.
+            meta = {  # built before any mutation so a failure here cannot leave half-applied results
+                'status': 'needs_review', 'contractVersion': result['schemaVersion'],
+                'contractStatus': CONTRACT_STATUS, 'adapter': adapter.name, 'synthetic': adapter.synthetic,
+                'model': runtime.settings.model, 'attempts': attempts,
+                'note': 'Machine-generated and unreviewed. Not a verified fact, eligibility finding or decision.'}
+            record.update(formFields=result['formFields'], findings=result['findings'],
+                          criteriaCoverage=result['criteriaCoverage'], authorization=result['authorization'],
+                          analysis=meta)
 
     def get(self, packet_id):
         # User input never becomes a filesystem path.
@@ -93,6 +165,8 @@ class PacketService:
                     if self.stopping.is_set():
                         with self.lock:
                             self.records[packet_id]['job']['state'] = 'failed'
+                            self.skip_analysis(self.records[packet_id], 'text_not_ready',
+                                               'Analysis did not run because text processing stopped.')
                         return
                     with self.lock:
                         record = self.records[packet_id]
@@ -129,14 +203,36 @@ class PacketService:
                             record['pages'][index].update(state='failed', error='This page could not be extracted. Review the original PDF.')
                     with self.lock:
                         record['job']['completedPages'] = index + 1
+                queue_analysis = False
                 with self.lock:
                     record['job']['state'] = 'text_ready'
                     record['job']['partial'] = any(p['state'] != 'ready' for p in record['pages'])
+                    # text_ready is OCR completion only. Analysis is queued atomically with it so a
+                    # reader never sees text_ready next to a stale "waiting" analysis state.
+                    if record['analysis']['status'] == 'waiting_for_text':
+                        if any(p['state'] == 'ready' for p in record['pages']):
+                            record['analysis'] = {'status': 'queued'}
+                            queue_analysis = True
+                        else:
+                            self.skip_analysis(record, 'no_readable_pages',
+                                               'No page produced readable text, so analysis was not attempted. Review the original pages.')
+                if queue_analysis:
+                    self.analysis_pool.submit(self.run_analysis, packet_id)
         except Exception:
             with self.lock:
                 self.records[packet_id]['job'].update(state='failed', error='PDF processing failed. No analysis or decision was generated.')
+                self.skip_analysis(self.records[packet_id], 'text_not_ready',
+                                   'Analysis did not run because text processing failed.')
         finally:
             self.active_slots.release()
+
+    def initial_analysis(self):
+        ready = self.analysis.readiness()
+        if ready.status == 'ready':
+            return {'status': 'waiting_for_text'}
+        if ready.status == 'not_connected':
+            return {'status': 'not_connected', 'reason': ready.message}
+        return {'status': 'unavailable', 'errorCode': ready.code, 'error': ready.message}
 
     def register(self, path: Path, packet_id, page_count, digest):
         record = {
@@ -146,7 +242,7 @@ class PacketService:
                     'completedPages': 0, 'totalPages': page_count, 'partial': False},
             'pages': [{'page': n, 'state': 'pending', 'text': '', 'imageUrl': None,
                        'quality': 'unverified', 'extractionMethod': None} for n in range(1, page_count + 1)],
-            'analysis': {'status': 'not_connected', 'reason': 'Clinical extraction and eligibility analysis are not implemented. OCR text is unverified.'},
+            'analysis': self.initial_analysis(),
             'formFields': [], 'findings': [],
             'criteriaCoverage': {'evaluated': 0, 'complete': False},
             'authorization': {'status': 'unknown'}, 'reviews': {}, 'outcome': None,
@@ -157,12 +253,14 @@ class PacketService:
         return record
 
 
-def create_app(ocr=default_ocr):
+def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None):
+    runtime = analysis or AnalysisRuntime()   # reads configuration only; builds no client, reads no files
+
     @asynccontextmanager
     async def lifespan(app):
         folder = Path(tempfile.mkdtemp(prefix='ihh-local-packets-'))
         folder.chmod(0o700)
-        app.state.service = PacketService(folder, ocr)
+        app.state.service = PacketService(folder, ocr, runtime)
         try:
             yield
         finally:
@@ -192,9 +290,20 @@ def create_app(ocr=default_ocr):
 
     @app.get('/health')
     def health():
+        # Static configuration report only: never imports the adapter, builds a client or calls a model.
+        ready = runtime.readiness()
+        s = runtime.settings
+        analysis_info = {'status': ready.status, 'adapterConfigured': runtime.injected is not None or bool(s.adapter),
+                         'model': s.model, 'modelConfigured': bool(s.model),
+                         'credentialPresent': bool((runtime.env.get('ANTHROPIC_API_KEY') or '').strip()),
+                         'timeoutSeconds': s.timeout_seconds, 'maxAttempts': s.max_attempts,
+                         'contractStatus': CONTRACT_STATUS, 'validated': False}
+        if ready.status != 'ready':
+            analysis_info.update(errorCode=ready.code, reason=ready.message)
         return {'status': 'ok', 'service': 'ihh-local-intake',
                 'capabilities': {'pdfText': True, 'ocr': shutil.which('tesseract') is not None,
-                                 'clinicalAnalysis': False, 'sending': False},
+                                 'clinicalAnalysis': ready.status == 'ready', 'sending': False},
+                'analysis': analysis_info,
                 'limits': {'maxBytes': MAX_BYTES, 'maxPages': MAX_PAGES},
                 'storage': 'ephemeral-local-session'}
 
@@ -254,7 +363,9 @@ def create_app(ocr=default_ocr):
 
     @app.get('/api/jobs/{job_id}')
     def job(job_id: str, request: Request):
-        return request.app.state.service.get(job_id)['job']
+        # `state` is text processing only (text_ready != analysis complete); `analysis` is separate.
+        record = request.app.state.service.get(job_id)
+        return {**record['job'], 'analysis': record['analysis']}
 
     @app.get('/api/referrals/{packet_id}')
     def referral(packet_id: str, request: Request):
@@ -307,6 +418,8 @@ def create_app(ocr=default_ocr):
                 raise HTTPException(409, 'Admission decisions are disabled: clinical analysis and complete criteria coverage are unavailable.')
             if record['job']['state'] != 'text_ready' or not record['reviews'] or not body.attested:
                 raise HTTPException(409, 'Review a source page and attest before recording the next step.')
+            if record['analysis']['status'] in ('queued', 'checking'):
+                raise HTTPException(409, 'Analysis is still running. Wait for it to finish before recording the next step.')
             record['outcome'] = body.model_dump(exclude={'version'})
             record['version'] += 1
             service.records[packet_id] = record
