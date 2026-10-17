@@ -26,6 +26,8 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.access import provider_from_env
+from backend.shared import build_router as build_shared_router, service_from_env
 from backend.timing import TimingInput, compute as compute_timing, open_intervals, summarize
 from backend.review import (
     FieldReviewInput, apply_field_review, build_export, draft_sections, now_iso, with_actions,
@@ -323,7 +325,7 @@ class PacketService:
         return record
 
 
-def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None):
+def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=None, auth=None, shared=None):
     runtime = analysis or AnalysisRuntime()   # reads configuration only; builds no client, reads no files
 
     @asynccontextmanager
@@ -335,9 +337,16 @@ def create_app(ocr=default_ocr, analysis: AnalysisRuntime | None = None, clock=N
             yield
         finally:
             app.state.service.close()
+            if shared_holder['service'] is not None and shared is None:
+                shared_holder['service'].close()
             shutil.rmtree(folder, ignore_errors=True)
 
     app = FastAPI(title='IHH local text-review prototype', lifespan=lifespan)
+    # LOOP-06: authenticated shared records, a separate module. Off unless an auth mode is ready AND a store is configured.
+    auth_provider = auth or provider_from_env()
+    shared_holder = {'service': shared if shared is not None else service_from_env(provider=auth_provider)}
+    app.include_router(build_shared_router(lambda: shared_holder['service'], auth_provider))
+    app.state.shared_holder = shared_holder
 
     @app.middleware('http')
     async def local_guards(request: Request, call_next):
