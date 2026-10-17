@@ -57,3 +57,8 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+
+## Implementation update (branch `be-04-human-review`)
+
+Backend slice done: field-level review (`backend/review.py`), allowed-action reasons, stale-write rejection, invalidation of findings/confirmation/draft/export, idempotent confirmation, reviewed export. Contract and generated examples: `docs/backend-review-contract.md`. Tested with synthetic fakes only; no model call. Still open: frontend UI (needs FE-03 because the merged client rejects non-`not_connected` analysis), authentication, durable history, clinical policy sign-off on which fields may be verified.
