@@ -47,6 +47,7 @@ jobs:
           from pathlib import Path
           expected = {
               '.nojekyll', 'index.html', 'styles.css', 'app.js', 'model.js',
+              'assets/source-sans-3-latin.woff2', 'assets/source-sans-3-LICENSE.txt',
               'backend-client.js', 'field-review-model.js', 'field-review.js',
               'reference/admission-criteria.md', 'reference/frontend-research-and-handoff.md',
               'team/index.html', 'team/board.js', 'team/tasks.json',

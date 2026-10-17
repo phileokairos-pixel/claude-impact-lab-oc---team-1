@@ -381,6 +381,9 @@ def _evidence(items, request: AnalysisRequest, pages: dict[int, PageInput], path
         if region is not None and not (isinstance(region, list) and len(region) == 4 and all(
                 isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1 for v in region)):
             _reject('invalid_region', f'{here}.region')
+        if region is not None and (region[2] <= 0 or region[3] <= 0 or
+                                   region[0] + region[2] > 1 or region[1] + region[3] > 1):
+            _reject('invalid_region', f'{here}.region')
         if ev['sourceQuality'] not in SOURCE_QUALITY:
             _reject('invalid_source_quality', f'{here}.sourceQuality')
         page = pages[ev['page']]
@@ -392,6 +395,18 @@ def _evidence(items, request: AnalysisRequest, pages: dict[int, PageInput], path
             _reject('quote_not_in_source', f'{here}.quote')
         out.append({**ev, 'quoteVerified': True if quote is not None else None})
     return out
+
+
+def _require_support(evidence: list[dict], path: str):
+    """A factual assertion needs at least one readable, locatable source span.
+
+    This checks traceability, not whether the source semantically proves the assertion.
+    Unreadable references remain valid for uncertainty records only.
+    """
+    if not any(e['sourceQuality'] == 'readable' and
+               (e['quoteVerified'] is True or e['region'] is not None)
+               for e in evidence):
+        _reject('assertion_without_readable_source', path)
 
 
 def validate_analysis_result(result: Any, request: AnalysisRequest, rules: dict[str, str]) -> dict:
@@ -433,6 +448,8 @@ def validate_analysis_result(result: Any, request: AnalysisRequest, rules: dict[
                                  'evidence': _evidence(a['evidence'], request, pages, f'{here}.alternatives[{j}].evidence')})
         if f['status'] == 'extracted' and (value is None or not evidence):
             _reject('extracted_without_value_or_evidence', here)
+        if f['status'] == 'extracted':
+            _require_support(evidence, f'{here}.evidence')
         if f['status'] in ('missing', 'redacted', 'unreadable') and value is not None:
             _reject('value_on_non_extracted_field', f'{here}.value')   # redacted dates stay null
         if f['status'] == 'conflicting' and not alternatives:
@@ -462,6 +479,8 @@ def validate_analysis_result(result: Any, request: AnalysisRequest, rules: dict[
         _text(f['rationale'], f'{here}.rationale')
         if f['status'] in ('meets', 'unmet') and not evidence:
             _reject('conclusion_without_evidence', here)       # missing is unknown, never "meets"
+        if f['status'] in ('meets', 'unmet'):
+            _require_support(evidence, f'{here}.evidence')
         if f['status'] == 'conflict' and len(evidence) < 2:
             _reject('conflict_without_two_sources', here)
         if f['status'] in ('meets', 'unmet') and rules[f['ruleId']] in NON_PASS_FAIL_KINDS:
@@ -489,6 +508,9 @@ def validate_analysis_result(result: Any, request: AnalysisRequest, rules: dict[
                      'evidence': _evidence(auth.get('evidence', []), request, pages, 'result.authorization.evidence')}
     if auth['status'] != 'unknown' and not authorization['evidence']:
         _reject('authorization_without_evidence', 'result.authorization')
+
+    if auth['status'] != 'unknown':
+        _require_support(authorization['evidence'], 'result.authorization.evidence')
 
     return {'schemaVersion': top['schemaVersion'], 'formFields': fields, 'findings': findings,
             'criteriaCoverage': coverage, 'authorization': authorization}
