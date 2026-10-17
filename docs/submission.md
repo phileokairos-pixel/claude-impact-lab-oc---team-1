@@ -6,7 +6,17 @@ IHH intake coordinators reviewing hospital referral packets, with separate demo 
 ## What we built
 Careward organizes referral evidence, conflicting information, clarification requests, human review and onboarding next steps in one prototype. It makes unknowns visible instead of treating missing or redacted information as normal. The intended benefit is less searching and repeated review; time savings have not yet been measured.
 
-## Demonstrate in three minutes
+## Guided two-minute team presentation
+Click **Present Careward** beside **Take a tour** on the live site. Speaker notes stay visible while each section opens and scrolls into view. Next/Back or arrow keys advance; Escape exits and restores the previous workspace. Motion respects reduced-motion settings.
+
+- Neetal: the problem (0:00–0:20).
+- Aaron: referral inbox and source evidence (0:20–1:05).
+- Vibhu: clarification and onboarding coordination (1:05–1:35).
+- Harjeev: proposed pilot, impact measurement and finished vision (1:35–2:00).
+
+These are suggested timings, not an automatic timer. The walkthrough uses a separate synthetic review, does not submit a referral or confirm an outcome, and explicitly labels unfinished integration.
+
+## Manual demonstration in three minutes
 1. Open the live demo and choose DEMO-001 in Referral inbox. Explain open questions and the staff coordination checklist.
 2. Open linked synthetic evidence review. Show the conflicting transfer evidence and original source pages. Review findings; preserve unknowns.
 3. Record a clarification or clinical-review next step with reviewer confirmation. Continue to referral and onboarding; set the responsible team and next action.
