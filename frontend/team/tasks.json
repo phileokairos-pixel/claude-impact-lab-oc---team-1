@@ -7,7 +7,7 @@
       "priority": "P0",
       "status": "In progress",
       "assignees": [
-        "phileokairos-pixel"
+        "VibhuA-ai"
       ],
       "lane": "API & workflow",
       "dependsOn": [],
@@ -36,7 +36,7 @@
       "status": "Todo",
       "assignees": [
         "harjeev",
-        "phileokairos-pixel"
+        "VibhuA-ai"
       ],
       "lane": "Document analysis",
       "dependsOn": [
@@ -50,7 +50,7 @@
       "priority": "P0",
       "status": "In progress",
       "assignees": [
-        "phileokairos-pixel",
+        "VibhuA-ai",
         "harjeev"
       ],
       "lane": "API & workflow",
@@ -80,7 +80,7 @@
       "priority": "P1",
       "status": "Todo",
       "assignees": [
-        "phileokairos-pixel"
+        "VibhuA-ai"
       ],
       "lane": "API & workflow",
       "dependsOn": [
@@ -98,7 +98,7 @@
       "status": "Todo",
       "assignees": [
         "harjeev",
-        "phileokairos-pixel"
+        "VibhuA-ai"
       ],
       "lane": "Team lead",
       "dependsOn": [],

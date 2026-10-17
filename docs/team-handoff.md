@@ -15,12 +15,12 @@ The next milestone is one complete flow: permitted PDF → source-linked intake 
 | Owner | Work now | Deliverable to unblock the next person |
 |---|---|---|
 | Harjeev | [BE-03 / #4](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/4), building on BE-02 / #3 | Versioned schema and synthetic response fixture, then real extraction with page evidence and explicit uncertainty |
-| phileokairos-pixel, covering Vibhu | [BE-04 / #5](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5), building on BE-01 / #2 | Human-confirmed field corrections, preserved extracted originals, stale-output invalidation and reviewed export |
-| Frontend/design work with Codex | Field verification UI and export preview | Source beside value, clear unresolved states, correction history and usable next-step output against Harjeev’s agreed fixture |
-| Harjeev, with phileokairos-pixel | BE-07 / #8; BE-05 / #6 after extraction works | Synthetic committed examples; private evaluation and reproducible results without labels leaking into inference |
-| phileokairos-pixel | BE-06 / #7 after the flow integrates | Timed walkthrough, failures and limitations recorded; no unsupported time-saving claims |
+| VibhuA-ai | [BE-04 / #5](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5), building on BE-01 / #2 | Human-confirmed field corrections, preserved extracted originals, stale-output invalidation and reviewed export |
+| phileokairos-pixel with Codex | Field verification UI and export preview | Source beside value, clear unresolved states, correction history and usable next-step output against Harjeev’s agreed fixture |
+| Harjeev, with VibhuA-ai | BE-07 / #8; BE-05 / #6 after extraction works | Synthetic committed examples; private evaluation and reproducible results without labels leaking into inference |
+| VibhuA-ai | BE-06 / #7 after the flow integrates | Timed walkthrough, failures and limitations recorded; no unsupported time-saving claims |
 
-Vibhu remains a collaborator; his work is temporarily covered, not duplicated. The design/API work listed above is on the same user's workstream and should be sequenced. Finish the contract and one vertical slice before adding production infrastructure.
+Vibhu has resumed API/workflow ownership. Start with BE-04 human review/export, coordinate BE-01 analysis integration with Harjeev, then add BE-06 measurement. phileokairos-pixel and Codex focus on frontend/design and integration. Finish the contract and one vertical slice before adding production infrastructure.
 
 ## Start from a clean checkout
 

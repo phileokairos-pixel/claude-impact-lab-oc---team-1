@@ -1,18 +1,18 @@
 # Backend tickets — Team 1
 
-**GitHub Issues is now the primary tracker.** All seven tickets are published with assignees and acceptance criteria. @phileokairos-pixel is covering @VibhuA-ai’s work; @harjeev leads extraction and evaluation. The site board is a navigation snapshot, not a live Project mirror. Project access remains unavailable to this integration; a team member must verify its import rule and collaborator access.
+**GitHub Issues is now the primary tracker.** All seven tickets are published with assignees and acceptance criteria. @VibhuA-ai has resumed API/workflow ownership; @harjeev leads extraction and evaluation. The site board is a navigation snapshot, not a live Project mirror. Project access remains unavailable to this integration; a team member must verify its import rule and collaborator access.
 
 See [team handoff](../team-handoff.md) for owners, setup and the next integration checkpoint. BE-01, BE-02 and BE-04 have partial local implementations; no ticket is complete merely because its starting slice exists.
 
 | Ticket | GitHub Issue | Lead |
 |---|---|---|
-| BE-01 | [API and runtime](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/2) | phileokairos-pixel |
+| BE-01 | [API and runtime](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/2) | VibhuA-ai |
 | BE-02 | [OCR and citations](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/3) | harjeev |
 | BE-03 | [Extraction contract](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/4) | harjeev |
-| BE-04 | [Human review](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5) | phileokairos-pixel |
+| BE-04 | [Human review](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/5) | VibhuA-ai |
 | BE-05 | [Blind evaluation](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/6) | harjeev |
-| BE-06 | [Measurement](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/7) | phileokairos-pixel |
-| BE-07 | [Fixture separation](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/8) | harjeev; phileokairos-pixel supports |
+| BE-06 | [Measurement](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/7) | VibhuA-ai |
+| BE-07 | [Fixture separation](https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/8) | harjeev; VibhuA-ai supports |
 
 The detailed Markdown below records the original review of `referral-review-repo.zip` at `c3e9a36c2b208b24cbde861cbb2cc33495e597b0`. It is historical evidence, not a statement that the current branch still lacks the subsequently implemented local API.
 
