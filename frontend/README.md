@@ -92,3 +92,7 @@ Pages Actions activation was verified after the repository owner updated Source 
 Analysis regression check: `node frontend/tests/analysis-state-browser.cjs` (local server running). Synthetic responses exercise pending analysis followed by completion, failure or unavailability; notes/rationale survive, old attestation clears, and confirmation uses the current revision. Backend assertion and version regressions are in `backend/tests/test_analysis.py`.
 
 The demo role selector separates the person receiving care, hospital referral staff and IHH intake staff. External views use synthetic examples only; this is not sign-in or access control. See [role workspaces and backend requirements](../docs/role-workspaces.md).
+
+## Careward design
+
+The approved interface name is **Careward · Referral coordination**. The green palette is retained with self-hosted Source Sans 3, larger readable type, restrained panels and visible mobile navigation. See [design conventions and presentation handoff](../docs/careward-design.md). Font license ships with the static assets.

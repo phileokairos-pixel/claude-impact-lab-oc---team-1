@@ -6,7 +6,7 @@ const assert=require('node:assert/strict');
  await page.goto('http://127.0.0.1:8000/');await page.locator('#demo').click();
  await page.locator('#workspace-role').selectOption('client');
  assert.equal(await page.locator('#nav-guide').isVisible(),false);assert.equal(await page.locator('a[href="./team/"]').isVisible(),false);
- assert.match(await page.locator('h1').textContent(),/plain language/);assert.equal(await page.locator('#file-input').count(),0);assert.equal(await page.locator('#fields-view').count(),0);
+ assert.match(await page.locator('h1').textContent(),/Your referral/);assert.equal(await page.locator('#file-input').count(),0);assert.equal(await page.locator('#fields-view').count(),0);
  await page.locator('#client-questions').click();assert.match(await page.locator('#client-question').textContent(),/referral stands/);
  await page.locator('#workspace-role').selectOption('hospital');assert.equal(await page.locator('#hospital-submit').isDisabled(),true);await page.locator('#hospital-prepare').click();await page.locator('#hospital-submit').click();assert.match(await page.locator('#hospital-status').textContent(),/Nothing was sent/);
  await page.locator('#workspace-role').selectOption('ihh');await page.locator('#fields-view').waitFor();
