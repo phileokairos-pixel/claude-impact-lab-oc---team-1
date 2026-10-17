@@ -86,3 +86,7 @@ Harjeev: provide the validated BE-03 schema/fixture before replacing the synthet
 ## Automatic deployment workflow
 
 The `Test and deploy intake frontend` workflow validates frontend pull requests and deploys frontend changes on `codex/frontend-live` once Pages Source is set to GitHub Actions. See `frontend/README.md` for the one-time Pages/environment settings. PRs never deploy; merging only to `main` is not a deployment trigger. Backend hosting remains separate. After Actions publishing is enabled, use the workflow rather than the older branch-based deploy command above.
+
+## Two frontend lanes
+
+Natal (@neetalp) owns presentation, responsive layout and accessibility in FE-01/FE-02 (#9/#10). phileokairos-pixel with Codex owns API integration, review behavior and exports in FE-03/FE-04 (#11/#12). Read [frontend lane boundaries](frontend-lanes.md) before editing shared frontend files. Each ticket includes a coding-assistant prompt and test expectations.
