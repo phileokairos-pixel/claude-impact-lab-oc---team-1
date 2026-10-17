@@ -47,3 +47,12 @@ Open a PR targeting codex/frontend-live when tooling permits; otherwise leave th
 ### Application-model configuration
 
 The current backend uses local Tesseract OCR and makes no LLM calls. Only extraction/inference work requires a runtime model. If using the team's Claude API access, select and verify an actually available model ID, configure it server-side, document the model/prompt/schema version, and supply credentials securely outside Git. Do not assume a model name from the archived prototype is valid. Missing access must produce an explicit unavailable/error state; synthetic adapter tests remain clearly labeled. Use synthetic documents first; never send identifiable patient data or assume event API credits authorize production IHH data processing.
+
+## Implementation update (branch `be-07-fixture-separation`)
+
+Done in the working tree:
+- `referral-review-repo.zip` (static page with packet-derived summaries plus the original `blind_eval.py`) is removed from the tree. The live frontend on this branch contains only the invented DEMO-001 fixture; nothing in `backend/` or `frontend/` names the evaluation labels (guarded by `backend/tests/test_repo_hygiene.py`).
+- `.gitignore` now also covers runtime/result/OCR/render directories, OCR page text, logs and pid files, and an unpacked archive directory.
+- New tests fail if an archive, image, packet PDF or OCR text file is tracked, if live code references `decisions.json`, or if the ignore rules stop covering derived content.
+
+**Not done, and not mine to decide:** the archive is still in Git history and on remote `main`. Removing it from the tree does not remove it from history. The team lead must ask the organizers whether the packet-derived summaries in it were acceptable to share and record the answer here. Until then, treat it as unresolved. No history rewrite or force-push was done. The labels file `challenges/1-referral-intake/eval/decisions.json` was supplied by the organizers for checking and remains in the challenge folder; only offline scoring (BE-05) may read it.
