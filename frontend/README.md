@@ -78,3 +78,13 @@ The attention checklist and **Next unreviewed field** button move keyboard focus
 Repository Pages must use **Settings → Pages → Build and deployment → Source: GitHub Actions**. The `github-pages` environment must allow deployments from `codex/frontend-live`; repository policy must permit the official checkout, setup-node, upload-pages-artifact and deploy-pages actions. No personal access token or extra secret is required. Once this source is selected, the old `npm run deploy` branch-push script no longer publishes the site; use the workflow. The Actions UI's manual Run workflow button may require this workflow to exist on the default branch first.
 
 The current deployment branch is deliberately `codex/frontend-live`. Merging only to `main` does not deploy. When the team moves integration to `main`, update the push branch, both deployment guards and environment branch policy together. Failed tests/builds prevent deployment and preserve the last successful site. The workflow's allowlist must be updated deliberately when adding a new public static asset.
+
+## Local review recovery
+
+The local text-review client preserves per-page note drafts, rationale, next-step choice and edited unsent text while navigating pages. Unsaved page notes block confirmation/export. Save failures retain inputs; 409 responses expose a reload action that preserves local drafts and shows the currently saved server note for comparison. Writes are guarded against concurrent clicks, and requests have a 30-second timeout. Leaving this view with unsaved page notes asks before discarding them; refresh still loses session memory.
+
+Export rechecks the server record and matching draft version before downloading. The export records the server draft separately from the user's edited unsent text. This is a checked snapshot, not a server-side immutable audit or an atomic cross-request transaction. Backend idempotency and authoritative clinical field review remain BE-04 work.
+
+The current adapter validates the existing text-only response identity, version and original page numbering, and rejects unsupported clinical payloads explicitly. It does not guess BE-03's future field schema or use synthetic fallback results. Test `node frontend/tests/backend-recovery-browser.cjs` with the local server running: its API is mocked with synthetic data to exercise failure paths. `node backend/tests/browser.cjs` separately exercises the real service with the public blank form.
+
+Pages Actions activation was verified after the repository owner updated Source and environment branch rules. Subsequent eligible pushes to `codex/frontend-live` now publish automatically after the workflow passes. Do not use the old gh-pages branch-push script to publish.

@@ -103,6 +103,64 @@
       "lane": "Team lead",
       "dependsOn": [],
       "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/8"
+    },
+    {
+      "id": "FE-01",
+      "title": "Polish responsive intake and source-review layout",
+      "priority": "P0",
+      "status": "Todo",
+      "assignees": [
+        "neetalp"
+      ],
+      "lane": "Presentation & accessibility",
+      "dependsOn": [],
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/9"
+    },
+    {
+      "id": "FE-02",
+      "title": "Verify keyboard access and accessible review states",
+      "priority": "P0",
+      "status": "Todo",
+      "assignees": [
+        "neetalp"
+      ],
+      "lane": "Presentation & accessibility",
+      "dependsOn": [
+        "FE-01"
+      ],
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/10"
+    },
+    {
+      "id": "FE-03",
+      "title": "Connect real extraction and review APIs to the frontend",
+      "priority": "P0",
+      "status": "In progress",
+      "assignees": [
+        "phileokairos-pixel"
+      ],
+      "lane": "Integration & review behavior",
+      "dependsOn": [
+        "BE-03",
+        "BE-04"
+      ],
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/11",
+      "progressNote": "Existing text-response validation and unsupported-schema handling implemented. Real field adapter awaits BE-03/BE-04 contract."
+    },
+    {
+      "id": "FE-04",
+      "title": "Connect confirmed export and preserve review work through errors",
+      "priority": "P0",
+      "status": "In progress",
+      "assignees": [
+        "phileokairos-pixel"
+      ],
+      "lane": "Integration & review behavior",
+      "dependsOn": [
+        "FE-03",
+        "BE-04"
+      ],
+      "url": "https://github.com/phileokairos-pixel/claude-impact-lab-oc---team-1/issues/12",
+      "progressNote": "Local note/draft retention, 409 recovery and version-checked export implemented. Clinical field review and authoritative export integration remain."
     }
   ]
 }
